@@ -1,0 +1,18 @@
+# Project
+pytest
+python-dotenv
+tomli
+
+# IO
+aiohttp
+requests
+aiofiles
+orjson
+
+# Server
+uvicorn
+fastapi
+python-multipart
+
+openai
+tiktoken
