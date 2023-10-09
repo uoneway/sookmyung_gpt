@@ -6,6 +6,8 @@ from fastapi import APIRouter, BackgroundTasks, Request, UploadFile
 
 from src import logger
 from src.common.consts import RESULT_DIR
+from src.processor.generator import reqeust_llm
+from src.processor.reader import FileReader
 from src.utils.io import get_current_timestamp, unzip_as_dict
 
 router = APIRouter()
@@ -38,10 +40,23 @@ async def upload_dialogue(
             await f.write(content)
             logger.info(f"File uploaded to {src_path}")
 
-        background_tasks.add_task(run, src_path=src_path)
+        background_tasks.add_task(generate, src_path=src_path)
 
     return True
 
 
-async def run(src_path):
-    return "Success"
+async def generate(src_path):
+    file = FileReader(src_path)
+    if file is None:
+        return False
+
+    text = file.text
+    logger.debug(f"Text: {text}")
+
+    result = await reqeust_llm(text)
+    logger.info(f"Generated text: {result['content']}")
+    logger.info(f"Usage: {result['usage']}")
+
+    RESULT_DIR
+
+    return result

@@ -9,6 +9,9 @@ requests
 aiofiles
 orjson
 
+olefile
+"unstructured[all-docs]"
+
 # Server
 uvicorn
 fastapi
