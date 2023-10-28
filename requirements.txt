@@ -10,12 +10,14 @@ aiofiles
 orjson
 
 olefile
-"unstructured[all-docs]"
+# unstructured[all-docs]
+unstructured[docx,pdf] @ git+https://github.com/uoneway/unstructured.git@feat/deal_file_only_in_memory
 
 # Server
-uvicorn
-fastapi
+# uvicorn
+# fastapi
 python-multipart
+streamlit
 
 openai
 tiktoken

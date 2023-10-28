@@ -1,82 +1,112 @@
-import argparse
-import logging
+# import sys
 
-import uvicorn
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-from starlette.middleware.cors import CORSMiddleware
+# import logging
+# from pathlib import Path
 
-from src import PHASE, logger
-from src.common.consts import SERVICE_TITLE
-from src.routes import upload
+import os
+from concurrent.futures import ThreadPoolExecutor
 
-response_404 = """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <title>Not Found</title>
-        </head>
-        <body>
-            <h2>Please check the URL</h2>
-        </body>
-        </html>
-        """
+import openai
+import pandas as pd
+import streamlit as st
+
+from src import logger
+from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, RESULT_DIR
+from src.common.models import ReportFile, ReportFileList
+from src.processor.reader import FileReader, get_suffix
+from src.utils.io import get_current_timestamp, get_suffix, unzip_as_dict
 
 
-def create_app():
-    if PHASE == "dev":
-        app = FastAPI(title=SERVICE_TITLE)
-    else:
-        app = FastAPI(title=SERVICE_TITLE, docs_url=None, redoc_url=None)
-
-    # app.include_router(status.router, tags=["Status"], prefix="/status")
-
-    # 미들웨어 정의
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+def get_response_oai(topic):
+    return openai.ChatCompletion.create(
+        model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Explain me {topic} in 30 words."}], stream=True
     )
 
-    app.include_router(upload.router, tags=["Upload"], prefix="/api")
 
-    @app.exception_handler(404)
-    async def custom_404_handler(_, __):
-        return HTMLResponse(response_404)
-
-    return app
-
-
-app = create_app()
+def read_report_file(file, name=None) -> ReportFile:
+    name = file.name if name is None else name
+    extension = get_suffix(name)
+    file_reader = FileReader(file=file, filetype=extension, clean=True)
+    return ReportFile(name=name, content=file_reader.text)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ip", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=7777)
-    parser.add_argument("--workers", type=int, default=3)
-    parser.add_argument("--reload", action="store_true", default=False)
-    args = parser.parse_args()
+def read_report_files_concurrently(files, names) -> ReportFileList:
+    with ThreadPoolExecutor() as executor:
+        return ReportFileList(executor.map(read_report_file, files, names))
 
-    if PHASE == "dev":
-        logger.setLevel(logging.DEBUG)
 
-        uvicorn.run(
-            "main:app",
-            host=args.ip,
-            port=args.port,
-            reload=args.reload,
-            reload_dirs=["src"],
-            log_config="log_config.yml",
-        )
+# Configure Streamlit page and state
+st.title("AI 기반 미래역량 평가 도구")
+st.markdown("#### 숙명여대 SSK 연구사업 AI-CALI팀 개발")
 
-    else:
-        uvicorn.run(
-            "main:app",
-            host=args.ip,
-            port=args.port,
-            workers=args.workers,
-            log_config="log_config.yml",
-        )
+with st.form("input"):
+    type_option = st.selectbox("역량", ["의사소통"])
+    upload_files = st.file_uploader(
+        f"과제 파일 업로드({' '.join(ALLOWED_EXTENSIONS_WITH_ZIP)})",
+        accept_multiple_files=True,
+        type=[ext[1:] for ext in ALLOWED_EXTENSIONS_WITH_ZIP],
+    )
+    # for filename, content in file_info.items():
+    #     src_path = tgt_dir / filename
+    #     async with aiofiles.open(src_path, "wb") as f:
+    #         await f.write(content)
+    #         logger.info(f"File uploaded to {src_path}")
+
+    submitted = st.form_submit_button("Submit")
+
+if submitted:
+    if not upload_files:
+        st.error("1개 이상의 파일을 첨부해주세요.")
+
+
+# Output
+with st.spinner("Indexing document... This may take a while⏳"):
+    files_dict = dict()
+    for upload_file in upload_files:
+        suffix = get_suffix(upload_file.name)
+        if suffix == ".zip":
+            _files_dict = unzip_as_dict(upload_file, return_as_file=True)
+
+            for filename, file in _files_dict.items():
+                if (ext := get_suffix(filename)) not in ALLOWED_EXTENSIONS:
+                    st.error(f"Unsupported file type: {ext}")
+                    st.stop()
+
+            files_dict.update(_files_dict)
+
+        else:
+            files_dict[upload_file.name] = upload_file
+
+    try:
+        report_file_list = read_report_files_concurrently(files_dict.values(), files_dict.keys())
+    except Exception as e:
+        st.error("Error reading file. Make sure the file is not corrupted or encrypted")
+        logger.error(f"Cannot read certarin files:{e.__class__.__name__}: {e}")
+        st.stop()
+
+    current_timestamp = get_current_timestamp(unit="µs")
+    tgt_dir = RESULT_DIR / str(int(current_timestamp))
+    os.makedirs(tgt_dir, exist_ok=True)
+
+    result = pd.DataFrame(report_file_list.to_list_of_dict())
+    result.to_csv(tgt_dir / "report.csv", index=False)
+    st.write(result)
+
+# if submitted and upload_files:
+#     for upload_file in upload_files:
+#         st.write(upload_file.type)
+#         st.write("filename:", upload_file.name)
+#         bytes_data = upload_file.read()
+
+
+# with st.form("output") as f:
+#     output = st.empty()
+#     result = ""
+
+#     if submitted:
+#         resp = get_response_oai(upload_topic)
+#     hiddent_submit = st.form_submit_button("Generation Finished", disabled=True)
+
+# st.write(f"길이: {len(content)} 자")
+# st.write(f"비용: {cost:.3f} usd($)")
+# st.download_button("Download", content)

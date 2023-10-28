@@ -115,24 +115,37 @@ def save_obj(collection: Collection, path: Union[str, Path], verbose: bool = Tru
         logger.info(f"Save to {path}")
 
 
-def unzip_as_dict(content) -> Optional[dict]:
+def unzip_as_dict(file: Union[str, io.BytesIO], return_as_file=True) -> Optional[dict]:
+    # 파일 경로 또는 BytesIO 객체를 처리
+    if isinstance(file, str):
+        is_zip = zipfile.is_zipfile(file)
+        zip_ref = zipfile.ZipFile(file, "r")
+    elif isinstance(file, io.BytesIO):
+        file.seek(0)  # Seek to the beginning of the file
+        is_zip = zipfile.is_zipfile(file)
+        zip_ref = zipfile.ZipFile(file, "r")
+    else:
+        logger.debug("Invalid file type")
+        return None
+
     # 파일이 ZIP 파일인지 확인합니다.
-    if not zipfile.is_zipfile(io.BytesIO(content)):
+    if not is_zip:
         logger.debug("The file is not a zip file")
         return None
 
     # ZIP 파일의 내용을 압축 해제합니다.
-    with zipfile.ZipFile(io.BytesIO(content), "r") as zip_ref:
-        file_dict = {}
+    files_dict = {}
+    with zip_ref:
         for zip_info in zip_ref.infolist():
-            if not zip_info.is_dir():  # 폴더는 건너뛰기
+            if not zip_info.is_dir():
                 with zip_ref.open(zip_info.filename) as f:
-                    file_data = f.read()
-                    # 폴더 구조를 고려하여 파일명 생성
+                    file_data = io.BytesIO(f.read()) if return_as_file else f.read()
+                    if return_as_file:
+                        file_data.seek(0)
                     recursive_filename = zip_info.filename.replace(os.path.sep, "_")
-                    file_dict[recursive_filename] = file_data
+                    files_dict[recursive_filename] = file_data
 
-    return file_dict
+    return files_dict
 
 
 async def load_async(file_path):
@@ -182,8 +195,8 @@ def get_suffix(path: Union[str, Path]):
     이를 유지시켜주기 위한 처리를 포함하고 있음
     """
     path = Path(path)
-
     suffix = path.suffix[1:]
+
     if len(suffix) >= 2 and re.search("[a-zA-Z]", path.suffix):
         return path.suffix
     else:

@@ -2,6 +2,7 @@ import re
 import struct
 import zlib
 from pathlib import Path
+from typing import IO, Optional
 
 import olefile
 from unstructured.partition.auto import partition
@@ -33,9 +34,25 @@ def clean_text(text, verbose=False):
 
 
 class FileReader(object):
-    def __init__(self, filepath, clean=False, verbose=False):
-        self.filepath = Path(filepath)
-        self.filetype = self.filepath.suffix
+    def __init__(
+        self,
+        filepath: Optional[Path] = None,
+        file: Optional[IO[bytes]] = None,
+        filetype: str = None,
+        clean=False,
+        verbose=False,
+    ):
+        self.filepath = None
+        assert (filepath or file) and not (filepath and file), "Either filepath or file should be given, not both."
+        if filepath is not None:
+            self.filepath = Path(filepath)
+            self.file = open(filepath, "rb")
+            self.filetype = get_suffix(filepath)
+        if file is not None:
+            assert filetype is not None, "filetype should be given when file is given."
+            self.file = file
+            self.filetype = filetype
+
         self.clean = clean
         self.verbose = verbose
 
@@ -44,45 +61,48 @@ class FileReader(object):
         self.char_count = self.calculate_char_count() if self.text else 0
 
     def extract_text(self):
-        # try:
-        match self.filetype:
-            case ".hwp":
-                text_list = HWPReader(self.filepath).text_list
-            case ".docx" | ".pptx" | ".ppt" | ".xlsx" | ".xls" | ".pdf":
-                """
-                Plaintext: .eml, .html, .json, .md, .msg, .rst, .rtf, .txt, .xml
-                Images: .jpeg, .png
-                Documents: .csv, .doc, .docx, .epub, .odt, .pdf, .ppt, .pptx, .tsv, .xlsx
+        try:
+            match self.filetype:
+                case ".txt":
+                    text_list = [line.decode("utf-8").strip() for line in self.file]
 
-                Text: FigureCaption, NarrativeText, ListItem, Title, Address, Table,
-                    PageBreak, Header, Footer, EmailAddress
-                CheckBox
-                Image
+                case ".hwp":
+                    text_list = HWPReader(self.file).text_list
+                case ".docx" | ".pdf":
+                    """
+                    Plaintext: .eml, .html, .json, .md, .msg, .rst, .rtf, .txt, .xml
+                    Images: .jpeg, .png
+                    Documents: .csv, .doc, .docx, .epub, .odt, .pdf, .ppt, .pptx, .tsv, .xlsx
 
-                """
-                # try:
-                elements = partition(filename=str(self.filepath))
+                    Text: FigureCaption, NarrativeText, ListItem, Title, Address, Table,
+                        PageBreak, Header, Footer, EmailAddress
+                    CheckBox
+                    Image
 
-                text_list = []
-                for elem in elements:
-                    if elem.category in ["Image", "PageBreak"]:
-                        continue
-                    if elem.category in ["Table", "Header", "Footer"]:
-                        print("Deleted:", elem.category, elem.text)
-                        continue
+                    """
+                    # try:
+                    # elements = partition(filename=str(self.filepath))
+                    elements = partition(file=self.file)
 
-                    text_list.append(elem.text)
+                    text_list = []
+                    for elem in elements:
+                        if elem.category in ["Image", "PageBreak"]:
+                            continue
+                        if elem.category in ["Table", "Header", "Footer"]:
+                            if self.verbose:
+                                print("Deleted:", elem.category, elem.text)
+                            continue
 
-                # except Exception as e:
-                #     if self.filetype in [".doc", ".docx"]:
-                #         text = DocxProcessor(self.filepath).doc_text
-                #     return text
-            case _:  # ".doc" | ".hwp"
-                raise Exception(f"{self.filetype} is not supported")
+                        text_list.append(elem.text)
 
-        # except Exception as e:
-        #     print(f"Cannot extract text from file: {self.filepath}")
-        #     return None
+                case _:  # ".doc"
+                    raise Exception(f"{self.filetype} is not supported")
+
+            self.file.close()
+
+        except Exception as e:
+            print(f"Cannot extract text from file: {self.filepath if self.filepath else self.file}. {e}")
+            return None
 
         if self.clean:
             text_list_cleaned = []
@@ -97,6 +117,12 @@ class FileReader(object):
         # 표 숫자는 줄바꿈도
         if self.clean:
             text = RegPat.NUMBER_SEQUENCE_3_MORE.sub(" ", text)
+
+        if not text:
+            if "\n".join(text_list):
+                print(f"All str in the doc is cleaned:\n{text_list}")
+            else:
+                print(f"Empty text: {self.filepath}")
         return text
 
     def calculate_word_count(self):
@@ -120,8 +146,8 @@ class HWPReader(object):
     BODYTEXT_SECTION = "BodyText"
     HWP_TEXT_TAGS = [67]
 
-    def __init__(self, filename):
-        self._ole = self.load(filename)
+    def __init__(self, filepath_or_fileio):
+        self._ole = self.load(filepath_or_fileio)
         self._dirs = self._ole.listdir()
 
         self._valid = self.is_valid(self._dirs)
@@ -133,8 +159,8 @@ class HWPReader(object):
         self.text = self._get_text()
 
     # 파일 불러오기
-    def load(self, filename):
-        return olefile.OleFileIO(filename)
+    def load(self, filepath_or_fileio):
+        return olefile.OleFileIO(filepath_or_fileio)
 
     # hwp 파일인지 확인 header가 없으면 hwp가 아닌 것으로 판단하여 진행 안함
     def is_valid(self, dirs):
@@ -206,3 +232,17 @@ class HWPReader(object):
             i += 4 + rec_len
 
         return text
+
+
+def get_suffix(path: str | Path):
+    """Path에서 suffix 부분을 리턴히는 함수
+    그냥 .with_suffix("")를 쓰면 SDRW2000000001.1 와 같은 형태가 들어왔을 때, '.1'가 삭제됨에 따라
+    이를 유지시켜주기 위한 처리를 포함하고 있음
+    """
+    path = Path(path)
+
+    suffix = path.suffix[1:]
+    if len(suffix) >= 2 and re.search("[a-zA-Z]", path.suffix):
+        return path.suffix
+    else:
+        return ""
