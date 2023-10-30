@@ -29,7 +29,7 @@ loggers:
   root:
     level: WARN
     handlers: [console]
-  cs-cat:
+  sookmyung-ai-cali:
     level: INFO
     handlers: [file1]
   uvicorn:

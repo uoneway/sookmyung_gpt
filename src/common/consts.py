@@ -1,6 +1,6 @@
 from pathlib import Path
 
-SERVICE_TITLE = "myproject"
+SERVICE_TITLE = "sookmyung-ai-cali"
 
 # Path
 PROJECT_DIR = Path(__file__).parent.parent.parent
