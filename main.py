@@ -1,26 +1,18 @@
 # import sys
-
-# import logging
 # from pathlib import Path
-
+import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
 
-import openai
-import pandas as pd
+# import pandas as pd
 import streamlit as st
 
 from src import logger
 from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, RESULT_DIR
 from src.common.models import ReportFile, ReportFileList
+from src.processor.generator import request_llm
 from src.processor.reader import FileReader, get_suffix
-from src.utils.io import get_current_timestamp, get_suffix, unzip_as_dict
-
-
-def get_response_oai(topic):
-    return openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"Explain me {topic} in 30 words."}], stream=True
-    )
+from src.utils.io import get_current_timestamp, get_suffix, load_json, unzip_as_dict
 
 
 def read_report_file(file, name=None) -> ReportFile:
@@ -33,6 +25,14 @@ def read_report_file(file, name=None) -> ReportFile:
 def read_report_files_concurrently(files, names) -> ReportFileList:
     with ThreadPoolExecutor() as executor:
         return ReportFileList(executor.map(read_report_file, files, names))
+
+
+async def run_llm_concurrently(report_file_list):
+    tasks = []
+    for report_file in report_file_list:
+        tasks.append(request_llm(input_text=report_file.content))
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    return results
 
 
 # Configure Streamlit page and state
@@ -54,43 +54,61 @@ with st.form("input"):
 
     submitted = st.form_submit_button("Submit")
 
+
+result_dict = {}
 if submitted:
     if not upload_files:
         st.error("1개 이상의 파일을 첨부해주세요.")
 
+    # Output
+    with st.spinner("파일을 읽고 있습니다... ⏳"):
+        files_dict = dict()
+        for upload_file in upload_files:
+            suffix = get_suffix(upload_file.name)
+            if suffix == ".zip":
+                _files_dict = unzip_as_dict(upload_file, return_as_file=True)
 
-# Output
-with st.spinner("Indexing document... This may take a while⏳"):
-    files_dict = dict()
-    for upload_file in upload_files:
-        suffix = get_suffix(upload_file.name)
-        if suffix == ".zip":
-            _files_dict = unzip_as_dict(upload_file, return_as_file=True)
+                for filename, file in _files_dict.items():
+                    if (ext := get_suffix(filename)) not in ALLOWED_EXTENSIONS:
+                        st.error(f"Unsupported file type: {ext}")
+                        st.stop()
 
-            for filename, file in _files_dict.items():
-                if (ext := get_suffix(filename)) not in ALLOWED_EXTENSIONS:
-                    st.error(f"Unsupported file type: {ext}")
-                    st.stop()
+                files_dict.update(_files_dict)
 
-            files_dict.update(_files_dict)
+            else:
+                files_dict[upload_file.name] = upload_file
 
-        else:
-            files_dict[upload_file.name] = upload_file
+        try:
+            input_file_list = read_report_files_concurrently(files_dict.values(), files_dict.keys())
+        except Exception as e:
+            st.error("Error reading file. Make sure certain files are not corrupted or encrypted")
+            logger.error(f"Cannot read certarin files:{e.__class__.__name__}: {e}")
+            st.stop()
 
-    try:
-        report_file_list = read_report_files_concurrently(files_dict.values(), files_dict.keys())
-    except Exception as e:
-        st.error("Error reading file. Make sure the file is not corrupted or encrypted")
-        logger.error(f"Cannot read certarin files:{e.__class__.__name__}: {e}")
-        st.stop()
+    with st.spinner("결과를 생성중입니다... 약 1분 내외가 소요됩니다. ⏳"):
+        current_timestamp = get_current_timestamp(unit="µs")
+        tgt_dir = RESULT_DIR / str(int(current_timestamp))
+        os.makedirs(tgt_dir, exist_ok=True)
 
-    current_timestamp = get_current_timestamp(unit="µs")
-    tgt_dir = RESULT_DIR / str(int(current_timestamp))
-    os.makedirs(tgt_dir, exist_ok=True)
+        # Run LLM
+        results = asyncio.run(run_llm_concurrently(input_file_list))
+        assert len(results) == len(input_file_list)
+        # total_results = []
+        # for report_file, result in zip(input_file_list, results):
+        #     total_results.append([result[0], result[1], result[2], report_file.name])
+        # result = pd.DataFrame(input_file_list.to_list_of_dict())
 
-    result = pd.DataFrame(report_file_list.to_list_of_dict())
-    result.to_csv(tgt_dir / "report.csv", index=False)
-    st.write(result)
+        # result.to_csv(tgt_dir / "report.csv", index=False)
+        print(results)
+
+        result_dict = load_json(results[0][0])
+        print(result_dict)
+
+        # df = pd.DataFrame(results, columns=["결과", "모델", "토큰 사용량", "프롬프트"])
+for category, result in result_dict.items():
+    st.write(category)
+    st.write(result["score"])
+    st.write(result["description"])
 
 # if submitted and upload_files:
 #     for upload_file in upload_files:

@@ -1,3 +1,0 @@
-학생의 리포트를 다음 평가기준에 따라 평가하여 다음을 출력해줘
-Score: 1~10 scale
-Description: Reasons in Korean that more than 3 sentences 

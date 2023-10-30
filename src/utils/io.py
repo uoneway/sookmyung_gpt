@@ -189,6 +189,14 @@ async def save_async(data, file_path: Path):
         raise NotImplementedError(f"No save func implemented for {file_path.suffix}")
 
 
+def load_json(response: str):
+    try:
+        return json.loads(response)  # TODO: refactor postprocesing
+    except json.JSONDecodeError as e:
+        logger.error(f"Undefined json parsing error raised: {e}\n\n{response}")
+        raise
+
+
 def get_suffix(path: Union[str, Path]):
     """Path에서 suffix 부분을 리턴히는 함수
     그냥 .with_suffix("")를 쓰면 SDRW2000000001.1 와 같은 형태가 들어왔을 때, '.1'가 삭제됨에 따라

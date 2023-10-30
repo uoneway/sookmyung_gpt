@@ -10,12 +10,11 @@ RESULT_DIR = PROJECT_DIR / "db/result"
 PROMPT_DIR = PROJECT_DIR / "src/prompt"
 
 # Model
-LLM_MODEL1: str = "gpt-3.5-turbo"  # -16k
-LLM_MODEL1_MAX_NUM_TOKEN: int = 4000  # 4,097
-LLM_MODEL2: str = "gpt-3.5-turbo-16k"
-LLM_MODEL2_MAX_NUM_TOKEN: int = 16000  # 16,385
 LLM_TEMPERATURE: int = 0
-
+# {"name": "gpt-4-32k", "max_tokens": 32768}, {"name": "gpt-3.5-turbo-16k", "max_tokens": 16385}]
+MODEL_TYPE_INFOS = [{"name": "gpt-4", "max_tokens": 8192}]
+MAX_OUTPUT_TOKENS = 800
+OPENAI_RETRIES = 3
 
 # Input
 ALLOWED_EXTENSIONS = [".hwp", ".docx", ".pdf"]
