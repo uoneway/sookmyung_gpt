@@ -137,12 +137,20 @@ def unzip_as_dict(file: Union[str, io.BytesIO], return_as_file=True) -> Optional
     files_dict = {}
     with zip_ref:
         for zip_info in zip_ref.infolist():
-            if not zip_info.is_dir():
+            if not zip_info.is_dir() and not zip_info.filename.startswith("__MACOSX/"):
+                # 폴더 구조를 파일 이름에 포함시킵니다.
+                try:
+                    # Try decoding the filename using UTF-8
+                    decoded_filename = zip_info.filename.encode("cp437").decode("utf-8")
+                except UnicodeDecodeError:
+                    # If decoding fails, use the original filename
+                    decoded_filename = zip_info.filename
+
+                recursive_filename = decoded_filename.replace(os.path.sep, "_")
                 with zip_ref.open(zip_info.filename) as f:
                     file_data = io.BytesIO(f.read()) if return_as_file else f.read()
                     if return_as_file:
                         file_data.seek(0)
-                    recursive_filename = zip_info.filename.replace(os.path.sep, "_")
                     files_dict[recursive_filename] = file_data
 
     return files_dict

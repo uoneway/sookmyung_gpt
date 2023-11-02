@@ -10,6 +10,7 @@ from retry import retry
 
 from src import logger
 from src.common.consts import LLM_TEMPERATURE, MAX_OUTPUT_TOKENS, MODEL_TYPE_INFOS, OPENAI_RETRIES, PROMPT_DIR
+from src.utils.io import load_json
 from src.utils.llm import num_tokens_from_messages
 
 prompt_path = PROMPT_DIR / "prompt.toml"
@@ -62,6 +63,31 @@ def construct_prompt(
 
 
 async def request_llm(input_text: str):
+    def serialize_score_info(score_info: dict[str, dict]) -> dict[str, int | str]:
+        """
+        Input:
+            data = {
+                'content': {'score': [1, 2, 3, 4, 5, 6], 'description': ''},
+                'structure': {'score': [7, 8, 9, 10], 'description': ''},
+                'grammar': {'score': [11, 12, 13], 'description': ''}
+            }
+        """
+        result = {}
+        total = 0
+        for key, value in score_info.items():
+            prefix = key[0].upper()
+            scores = value["score"]
+            description = value["description"]
+            sub_total = sum(scores)
+            for i, score in enumerate(scores, start=1):
+                result[f"{prefix}_{i}"] = score
+            result[f"{prefix}_total"] = sub_total
+            result[f"{prefix}_description"] = description
+            total += sub_total
+
+        result["Total"] = total
+        return result
+
     def response_metainfo_str(usage_response: dict, start_datetime: datetime):
         entry = {
             "datetime": datetime.now().isoformat(),
@@ -82,17 +108,31 @@ async def request_llm(input_text: str):
         temperature=LLM_TEMPERATURE,
         max_tokens=MAX_OUTPUT_TOKENS,
     )
-    content = resp["choices"][0]["message"]["content"]
+    try:
+        score_info = load_json(resp["choices"][0]["message"]["content"])
+        score_info_serialized = serialize_score_info(score_info)
+    except Exception as e:
+        logger.exception(f"LLM response is not as expected form: {e.__class__.__name__}: {e}\n{resp}")
+
     token_usage = resp["usage"]
 
-    logger.info(f"LLM Response: {resp}")
-    logger.info(f"Metainfo of LLM Response : {response_metainfo_str(token_usage, t)}")
+    logger.info(f"LLM Response Metainfo: {response_metainfo_str(token_usage, t)}")
     prompts_str = "\n\n".join([f"{p['role']}: {p['content']}" for p in prompts])
-    return content, model_name, token_usage, prompts_str
+    return {
+        "score_info": score_info_serialized,
+        "model_name": model_name,
+        "token_usage": token_usage,
+        "prompts_str": prompts_str,
+    }
 
 
 @retry(
-    exceptions=(APIError, Timeout, TryAgain, RateLimitError), tries=OPENAI_RETRIES, delay=2, backoff=2, jitter=(1, 3)
+    exceptions=(APIError, Timeout, TryAgain, RateLimitError),
+    tries=OPENAI_RETRIES,
+    delay=2,
+    backoff=2,
+    jitter=(1, 3),
+    logger=logger,
 )
 async def achat_completion(model, messages: list[str], temperature=0.0, max_tokens=None, stream=False):
     try:
