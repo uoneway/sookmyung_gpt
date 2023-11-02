@@ -7,6 +7,8 @@ from typing import IO, Optional
 import olefile
 from unstructured.partition.auto import partition
 
+from src.utils.io import get_suffix
+
 
 class RegPat:
     TO_REMOVE_CHAR = re.compile(r"\xa0|[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")  # ASCII_CONTROL 문자 등
@@ -232,17 +234,3 @@ class HWPReader(object):
             i += 4 + rec_len
 
         return text
-
-
-def get_suffix(path: str | Path):
-    """Path에서 suffix 부분을 리턴히는 함수
-    그냥 .with_suffix("")를 쓰면 SDRW2000000001.1 와 같은 형태가 들어왔을 때, '.1'가 삭제됨에 따라
-    이를 유지시켜주기 위한 처리를 포함하고 있음
-    """
-    path = Path(path)
-
-    suffix = path.suffix[1:]
-    if len(suffix) >= 2 and re.search("[a-zA-Z]", path.suffix):
-        return path.suffix
-    else:
-        return ""

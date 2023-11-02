@@ -11,7 +11,7 @@ from src import logger
 from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, RESULT_DIR
 from src.common.models import ReportFile, ReportFileList
 from src.processor.generator import request_llm
-from src.processor.reader import FileReader, get_suffix
+from src.processor.reader import FileReader
 from src.utils.io import get_current_timestamp, get_suffix, load_json, unzip_as_dict
 
 

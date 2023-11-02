@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from src.processor.reader import get_suffix
+from src.utils.io import get_suffix
 
 
 @dataclass
