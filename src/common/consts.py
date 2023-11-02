@@ -6,6 +6,8 @@ SERVICE_TITLE = "sookmyung-ai-cali"
 PROJECT_DIR = Path(__file__).parent.parent.parent
 ENV_PATH = PROJECT_DIR / ".env"
 ENV_DEV_PATH = PROJECT_DIR / ".env.dev"
+LOG_DIR = "./logs"
+LOG_CONFIG_PATH = PROJECT_DIR / "log_config.yml"
 RESULT_DIR = PROJECT_DIR / "db/result"
 PROMPT_DIR = PROJECT_DIR / "src/prompt"
 

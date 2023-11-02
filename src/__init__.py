@@ -1,10 +1,19 @@
 import logging
+import logging.config
 import os
 
 import openai
+import yaml
 from dotenv import load_dotenv
 
-from src.common.consts import ENV_DEV_PATH, ENV_PATH, SERVICE_TITLE
+from src.common.consts import ENV_DEV_PATH, ENV_PATH, LOG_CONFIG_PATH, LOG_DIR, SERVICE_TITLE
+
+# 로깅 설정 로드
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+with open(LOG_CONFIG_PATH, "r") as f:
+    config = yaml.safe_load(f.read())
+    logging.config.dictConfig(config)
 
 logger = logging.getLogger(SERVICE_TITLE)
 
@@ -15,7 +24,6 @@ if ENV_DEV_PATH.exists():
 assert os.getenv("PHASE") is not None, "Set PHASE enviroment value"
 PHASE = os.getenv("PHASE")
 logger.info(f"PHASE: {PHASE}")
-print(f"PHASE: {PHASE}")
 if PHASE == "dev":
     logger.setLevel(logging.DEBUG)
 
