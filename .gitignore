@@ -200,6 +200,7 @@ cython_debug/
 
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
+*.ipynb
 
 # IPython
 profile_default/
