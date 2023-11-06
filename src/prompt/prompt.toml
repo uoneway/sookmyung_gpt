@@ -36,7 +36,7 @@ role="user"
 content="""Output:
  - Guide:
    - score: 1~5 scale for each sub-category.
-   - description: Reasons in Korean that more than 3 sentences.
+   - description: Reasons in Korean that less than 3 sentences.
  - Format: Json:
 {
     'content': {'score': [score1_1, ..., score1_6], 'description': ''},
