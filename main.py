@@ -132,8 +132,9 @@ if submitted:
         # current_timestamp = get_current_timestamp(unit="µs")
         filename = f"report_{stu_id_base}.csv"
 
-        result_csv = result_df.to_csv().encode("utf-8")
+        result_csv = result_df.to_csv(index=False).encode("utf-8-sig")
         st.download_button("결과 다운받기", result_csv, filename, "text/csv", key="download-csv")
+
         # tgt_dir = RESULT_DIR / filename
         # os.makedirs(tgt_dir, exist_ok=True)
         # try:
