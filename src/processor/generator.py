@@ -41,7 +41,8 @@ def get_model_name_adapt_to_prompt_len(prompts: list[dict], reduce_prompt_idx: O
             prompts[reduce_prompt_idx]["content"] = prompts[reduce_prompt_idx]["content"][:-num_chars_to_remove]
             if len(prompts[1]["content"]) < 5:
                 raise ValueError(
-                    f"The length of prompts[1]['content'], '{prompts[1]['content']}'  is too short. Please check the input."
+                    f"The length of prompts[1]['content'], '{prompts[1]['content']}' is too short. "
+                    + "Please check the input."
                 )
 
     return model_name, prompts

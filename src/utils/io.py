@@ -78,7 +78,8 @@ def load_obj(
             raise e
         else:
             logger.info(
-                f"The appropriate file encoding value is {encoding_fix} not {encoding}. If you designate 'encoding={encoding_fix}', you'll be able to read the file faster"
+                f"The appropriate file encoding value is {encoding_fix} not {encoding}. "
+                + f"If you designate 'encoding={encoding_fix}', you'll be able to read the file faster"
             )
             encoding = encoding_fix
 
