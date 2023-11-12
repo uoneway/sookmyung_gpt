@@ -19,6 +19,9 @@ unstructured[docx,pdf] @ git+https://github.com/uoneway/unstructured.git@feat/de
 python-multipart
 streamlit
 
-openai
+openai==0.28.1
 tiktoken
 retry==0.9.2
+
+google-api-python-client
+oauth2client
