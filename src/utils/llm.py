@@ -27,6 +27,7 @@ def num_tokens_from_messages(messages: list[dict[str, str]], model="gpt-3.5-turb
         "gpt-4-32k-0314",
         "gpt-4-0613",
         "gpt-4-32k-0613",
+        "gpt-4-1106-preview",
     }:
         tokens_per_message = 3
         tokens_per_name = 1

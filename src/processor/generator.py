@@ -9,7 +9,7 @@ from openai.error import APIError, RateLimitError, Timeout, TryAgain
 from retry import retry
 
 from src import logger
-from src.common.consts import LLM_TEMPERATURE, MAX_OUTPUT_TOKENS, MODEL_TYPE_INFOS, OPENAI_RETRIES, PROMPT_DIR
+from src.common.consts import LLM_TEMPERATURE, MAX_OUTPUT_TOKENS, MODEL_TYPE_INFOS, OPENAI_RETRIES, PROMPT_DIR, TO_JSON
 from src.utils.io import load_json
 from src.utils.llm import num_tokens_from_messages
 
@@ -106,6 +106,7 @@ async def request_llm(input_text: str):
     resp = await achat_completion(
         model=model_name,
         messages=prompts,
+        to_json=TO_JSON,
         temperature=LLM_TEMPERATURE,
         max_tokens=MAX_OUTPUT_TOKENS,
     )
@@ -135,10 +136,16 @@ async def request_llm(input_text: str):
     jitter=(1, 3),
     logger=logger,
 )
-async def achat_completion(model, messages: list[str], temperature=0.0, max_tokens=None, stream=False):
+async def achat_completion(model, messages: list[str], to_json=False, temperature=0.0, max_tokens=None, stream=False):
+    response_format = {"type": "json_object" if to_json else "text"}
     try:
         return await openai.ChatCompletion.acreate(
-            model=model, messages=messages, temperature=temperature, max_tokens=max_tokens, stream=stream
+            model=model,
+            messages=messages,
+            response_format=response_format,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=stream,
         )
     except (APIError, Timeout, TryAgain) as e:
         logger.error("Error during OpenAI inference: ", e)
