@@ -48,6 +48,7 @@ OUTPUT_DTYPE_DICT = {
     "G_description": "str",
     "원문파일명": "str",
     "원문 내용": "str",
+    "사용 모델명": "str",
     "비고": "str",
 }
 OUTPUT_STR_COLUMNS = [colname for colname, t in OUTPUT_DTYPE_DICT.items() if t == "str"]

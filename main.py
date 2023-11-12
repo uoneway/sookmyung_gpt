@@ -117,6 +117,7 @@ if submitted:
                     _result["비고"] = result
             else:
                 _result.update(result["score_info"])
+                _result.update({"사용 모델명": result["model_name"]})
             _result.update({"원문파일명": report_file.name, "원문 내용": report_file.content})
 
             total_results.append(_result)
