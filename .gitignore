@@ -219,3 +219,4 @@ tests/
 db/
 temp*/
 tmp*/
+.streamlit/

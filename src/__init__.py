@@ -3,6 +3,7 @@ import logging.config
 import os
 
 import openai
+import streamlit as st
 import yaml
 from dotenv import load_dotenv
 
@@ -29,3 +30,5 @@ if PHASE == "dev":
 
 assert os.getenv("OPENAI_API_KEY") is not None, "Set OPENAI_API_KEY enviroment value"
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+GOOGLE_DRIVE_SERVICE_SECRETS = st.secrets["google_drive_service_secrets"]

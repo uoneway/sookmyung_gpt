@@ -52,3 +52,6 @@ OUTPUT_DTYPE_DICT = {
     "비고": "str",
 }
 OUTPUT_STR_COLUMNS = [colname for colname, t in OUTPUT_DTYPE_DICT.items() if t == "str"]
+
+# google drive
+base_folder_id = "1EHaZ9kIAL2k64l40-7sya8yIrvgvxhNj"
