@@ -144,8 +144,11 @@ def unzip_as_dict(file: Union[str, io.BytesIO], return_as_file=True) -> Optional
                     # Try decoding the filename using UTF-8
                     decoded_filename = zip_info.filename.encode("cp437").decode("utf-8")
                 except UnicodeDecodeError:
-                    # If decoding fails, use the original filename
-                    decoded_filename = zip_info.filename
+                    try:
+                        decoded_filename = zip_info.filename.encode("cp437").decode("cp949")
+                    except UnicodeDecodeError:
+                        logger.warning(f"Failed to decode filename: {zip_info.filename}")
+                        decoded_filename = zip_info.filename
 
                 recursive_filename = decoded_filename.replace(os.path.sep, "_")
                 with zip_ref.open(zip_info.filename) as f:
