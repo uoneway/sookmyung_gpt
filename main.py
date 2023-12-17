@@ -42,6 +42,24 @@ def raise_error(msg="Error", e=Exception):
     logger.error(msg)
 
 
+# https://docs.streamlit.io/library/api-reference/utilities/st.set_page_config
+st.set_page_config(
+    page_title="AI 기반 미래역량 평가 도구", page_icon="🧊", layout="centered", initial_sidebar_state="auto"  # "wide",
+)
+
+# #  Hide sidebar menu
+# st.markdown(
+#     # [data-testid="collapsedControl"] {
+#     """
+#     <style>
+#         section[data-testid="stSidebar"][aria-expanded="true"]{
+#             display: none;
+#         }
+#     </style>
+#     """,
+#     unsafe_allow_html=True,
+# )
+
 # Configure Streamlit page and state
 st.title("AI 기반 미래역량 평가 도구")
 st.markdown("#### 숙명여대 SSK 연구사업 AI-CALI팀 개발")
