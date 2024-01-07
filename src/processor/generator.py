@@ -77,7 +77,9 @@ class Generator:
         criteria_list_with_num = []
         output_format_dict = {}
         for main_idx, crit_dict in enumerate(criteria_dict["criteria"], start=1):
-            criteria_list_with_num.append(f"{main_idx}. {crit_dict['title_kor']}({crit_dict['title_eng']})")
+            criteria_list_with_num.append(
+                f"{main_idx}. {crit_dict['title_kor']}({crit_dict['title_eng'].capitalize()})"
+            )
             criteria_list_with_num.extend(
                 [f"  {main_idx}-{sub_idx}. {elem}" for sub_idx, elem in enumerate(crit_dict["elements"], start=1)]
             )

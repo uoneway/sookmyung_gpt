@@ -1,7 +1,7 @@
 category_name_kor = "의사소통"
 
 [[criteria]]
-title_eng = "Content"
+title_eng = "content"
 title_kor = "내용의 적절성"
 elements = [
     "(중심 내용의 명확성) 글의 중심 내용이 명확하다",
@@ -13,7 +13,7 @@ elements = [
 ]
 
 [[criteria]]
-title_eng = "Structure"
+title_eng = "structure"
 title_kor = "조직의 효과성"
 elements = [
     "(글 구조의 적절성) 글의 구조가 글의 목적에 부합한다.",
@@ -23,7 +23,7 @@ elements = [
 ]
 
 [[criteria]]
-title_eng = "Grammar"
+title_eng = "grammar"
 title_kor = "어법의 정확성"
 elements = [
     "(맞춤법) 맞춤법과 띄어쓰기가 지켜지고 있다",
