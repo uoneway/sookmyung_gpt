@@ -7,15 +7,13 @@ import streamlit as st
 
 from src import logger
 from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, OUTPUT_DTYPE_DICT, OUTPUT_STR_COLUMNS
-from src.common.models import ReportFile, ReportFileList
+from src.common.models import ReportFile, ReportFileList, category_en_to_ko_dict
 from src.processor.generator import Generator
 from src.processor.reader import FileReader
 from src.utils.google_drive import GoogleDriveHelper
 from src.utils.io import get_current_datetime, get_suffix, unzip_as_dict
 
 gd_helper = GoogleDriveHelper()
-
-category_option_dict = {"communication": "의사소통"}
 
 
 def read_report_file(file, name=None) -> ReportFile:
@@ -76,8 +74,8 @@ st.write(
 with st.form("input"):
     category_option = st.selectbox(
         "역량",
-        options=tuple(category_option_dict.keys()),
-        format_func=lambda x: category_option_dict[x],
+        options=tuple(category_en_to_ko_dict.keys()),
+        format_func=lambda x: category_en_to_ko_dict[x],
         # index=None,
         # placeholder="Select contact method...",
     )

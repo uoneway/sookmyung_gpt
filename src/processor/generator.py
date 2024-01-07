@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from enum import StrEnum, auto
 from typing import Optional
 
 import openai
@@ -11,12 +10,9 @@ from retry import retry
 
 from src import logger
 from src.common.consts import LLM_TEMPERATURE, MAX_OUTPUT_TOKENS, MODEL_TYPE_INFOS, OPENAI_RETRIES, PROMPT_DIR, TO_JSON
+from src.common.models import Category, prompt_per_category_dict
 from src.utils.io import load_json
 from src.utils.llm import num_tokens_from_messages
-
-
-class Category(StrEnum):
-    communication: str = auto()
 
 
 def get_model_name_adapt_to_prompt_len(prompts: list[dict], reduce_prompt_idx: Optional[int] = None):
@@ -59,10 +55,11 @@ class Generator:
     to_json = True
     max_output_tokens = 2000
 
+    with prompt_templates_path.open("rb") as f:
+        prompt_templates = tomli.load(f)["prompt"]
+
     def __init__(self) -> None:
-        # Load prompt templates
-        with self.prompt_templates_path.open("rb") as f:
-            self.prompt_templates = tomli.load(f)["prompt"]
+        pass
 
     @staticmethod
     def postprocessor(text: str) -> str:
@@ -75,16 +72,11 @@ class Generator:
         **kwargs,
     ) -> list[dict]:
         # By category, construct criteria str and output_format str
-        criteria_path = self.category_dir / f"{category}.toml"
-        if not criteria_path.is_file():
-            raise FileNotFoundError(criteria_path)
-        with criteria_path.open("rb") as f:
-            criteria_dict = tomli.load(f)
-            criteria_list = criteria_dict["criteria"]
+        criteria_dict = prompt_per_category_dict[category]
 
         criteria_list_with_num = []
         output_format_dict = {}
-        for main_idx, crit_dict in enumerate(criteria_list, start=1):
+        for main_idx, crit_dict in enumerate(criteria_dict["criteria"], start=1):
             criteria_list_with_num.append(f"{main_idx}. {crit_dict['title_kor']}({crit_dict['title_eng']})")
             criteria_list_with_num.extend(
                 [f"  {main_idx}-{sub_idx}. {elem}" for sub_idx, elem in enumerate(crit_dict["elements"], start=1)]
@@ -95,7 +87,7 @@ class Generator:
                 "description": "",
             }
         criteria_str = "\n".join(criteria_list_with_num)
-        output_format_str = json.dumps(output_format_dict)  #  indent=4
+        output_format_str = json.dumps(output_format_dict)  # indent=4
 
         # Construct prompt
         kwargs.update(

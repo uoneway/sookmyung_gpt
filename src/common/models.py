@@ -1,7 +1,24 @@
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Optional
 
+import toml
+
+from src.common.consts import PROMPT_PER_CATEGORY_DIR
 from src.utils.io import get_suffix
+
+# Read .toml files and build the category_option_dict
+prompt_per_category_dict = {}
+prompt_per_category_file_paths = sorted(PROMPT_PER_CATEGORY_DIR.glob("*.toml"), key=lambda file: file.name)
+for file in prompt_per_category_file_paths:
+    data = toml.load(file)
+    category_key = file.stem  # Gets the file name without extension
+    prompt_per_category_dict[category_key] = data
+
+category_en_to_ko_dict = {k: v["category_name_kor"] for k, v in prompt_per_category_dict.items()}
+Category = StrEnum("Category", {k: k for k in prompt_per_category_dict})
+# class Category(StrEnum):
+#     communication: str = auto()
 
 
 @dataclass
