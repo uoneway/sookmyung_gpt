@@ -8,12 +8,14 @@ import streamlit as st
 from src import logger
 from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, OUTPUT_DTYPE_DICT, OUTPUT_STR_COLUMNS
 from src.common.models import ReportFile, ReportFileList
-from src.processor.generator import request_llm
+from src.processor.generator import Generator
 from src.processor.reader import FileReader
 from src.utils.google_drive import GoogleDriveHelper
 from src.utils.io import get_current_datetime, get_suffix, unzip_as_dict
 
 gd_helper = GoogleDriveHelper()
+
+category_option_dict = {"communication": "의사소통"}
 
 
 def read_report_file(file, name=None) -> ReportFile:
@@ -28,10 +30,12 @@ def read_report_files_concurrently(files, names) -> ReportFileList:
         return ReportFileList(executor.map(read_report_file, files, names))
 
 
-async def run_llm_concurrently(report_file_list):
+async def run_llm_concurrently(report_file_list, category_option):
+    generator = Generator()
+
     tasks = []
     for report_file in report_file_list:
-        tasks.append(request_llm(input_text=report_file.content))
+        tasks.append(generator.agenerate(category=category_option, input_text=report_file.content))
     results = await asyncio.gather(*tasks, return_exceptions=True)
     return results
 
@@ -70,7 +74,13 @@ st.write(
 )
 
 with st.form("input"):
-    type_option = st.selectbox("역량", ["의사소통"])
+    category_option = st.selectbox(
+        "역량",
+        options=tuple(category_option_dict.keys()),
+        format_func=lambda x: category_option_dict[x],
+        # index=None,
+        # placeholder="Select contact method...",
+    )
     upload_files = st.file_uploader(
         f"과제 파일 업로드({' '.join(ALLOWED_EXTENSIONS_WITH_ZIP)})",
         accept_multiple_files=True,
@@ -117,7 +127,7 @@ if submitted:
     with st.spinner("평가중입니다... 약 1~2분 소요됩니다."):
         # Run LLM
         logger.info("Start to run LLM...")
-        results = asyncio.run(run_llm_concurrently(input_file_list))
+        results = asyncio.run(run_llm_concurrently(input_file_list, category_option))
         assert len(results) == len(input_file_list)
 
         stu_id_base = get_current_datetime(format="%y%m%d_%H%M%S")

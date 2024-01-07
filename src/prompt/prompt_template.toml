@@ -1,0 +1,23 @@
+[[prompt]]
+role = "system"
+content = """Objective: 너는 글쓰기 {{category}} 역량 측정 분야의 전문가야. 주어질 학생의 리포트를 분석하고 이를 바탕으로 학생의 글쓰기 {{category}} 역량을 다음 세부 평가기준 별로 평가해줘
+
+Scoring Criteria:
+{{criteria}}
+"""
+
+[[prompt]]
+role = "user"
+content = """Report:
+{{input_text}}
+"""
+
+[[prompt]]
+role = "assistant"
+content = """Output:
+ - Guide:
+   - score: 1~5 scale for each sub-criteria.
+   - description: Reasons in Korean that less than 3 sentences.
+ - Format: Json:
+   {{output_format}}
+"""

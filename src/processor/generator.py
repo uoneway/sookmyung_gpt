@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from enum import StrEnum, auto
 from typing import Optional
 
 import openai
@@ -13,9 +14,9 @@ from src.common.consts import LLM_TEMPERATURE, MAX_OUTPUT_TOKENS, MODEL_TYPE_INF
 from src.utils.io import load_json
 from src.utils.llm import num_tokens_from_messages
 
-prompt_path = PROMPT_DIR / "prompt.toml"
-with prompt_path.open("rb") as f:
-    prompt_dict = tomli.load(f)
+
+class Category(StrEnum):
+    communication: str = auto()
 
 
 def get_model_name_adapt_to_prompt_len(prompts: list[dict], reduce_prompt_idx: Optional[int] = None):
@@ -48,84 +49,132 @@ def get_model_name_adapt_to_prompt_len(prompts: list[dict], reduce_prompt_idx: O
     return model_name, prompts
 
 
-def construct_prompt(
-    input_text: str,
-    **kwargs,
-) -> list[dict]:
-    kwargs.update(input_text=input_text)
+class Generator:
+    prompt_templates_path = PROMPT_DIR / "prompt_template.toml"
+    category_dir = PROMPT_DIR / "category"
 
-    prompts = []
-    for k, p in prompt_dict.items():
-        if k.startswith("prompt"):
+    model_type = "gpt-4"
+    temperature = 0.0
+    stream = False
+    to_json = True
+    max_output_tokens = 2000
+
+    def __init__(self) -> None:
+        # Load prompt templates
+        with self.prompt_templates_path.open("rb") as f:
+            self.prompt_templates = tomli.load(f)["prompt"]
+
+    @staticmethod
+    def postprocessor(text: str) -> str:
+        return text
+
+    def construct_prompt(
+        self,
+        category: Category,
+        input_text: str,
+        **kwargs,
+    ) -> list[dict]:
+        # By category, construct criteria str and output_format str
+        criteria_path = self.category_dir / f"{category}.toml"
+        if not criteria_path.is_file():
+            raise FileNotFoundError(criteria_path)
+        with criteria_path.open("rb") as f:
+            criteria_dict = tomli.load(f)
+            criteria_list = criteria_dict["criteria"]
+
+        criteria_list_with_num = []
+        output_format_dict = {}
+        for main_idx, crit_dict in enumerate(criteria_list, start=1):
+            criteria_list_with_num.append(f"{main_idx}. {crit_dict['title_kor']}({crit_dict['title_eng']})")
+            criteria_list_with_num.extend(
+                [f"  {main_idx}-{sub_idx}. {elem}" for sub_idx, elem in enumerate(crit_dict["elements"], start=1)]
+            )
+
+            output_format_dict[crit_dict["title_eng"]] = {
+                "score": [f"score{main_idx}-{sub_idx+1}" for sub_idx in range(len(crit_dict["elements"]))],
+                "description": "",
+            }
+        criteria_str = "\n".join(criteria_list_with_num)
+        output_format_str = json.dumps(output_format_dict)  #  indent=4
+
+        # Construct prompt
+        kwargs.update(
+            category=criteria_dict["category_name_kor"],
+            criteria=criteria_str,
+            input_text=input_text,
+            output_format=output_format_str,
+        )
+        prompts = []
+        for p in self.prompt_templates:
             content = Environment().from_string(p["content"]).render(**kwargs)
             if content:
                 prompts.append({"role": p["role"], "content": content})
-    return prompts
 
+        return prompts
 
-async def request_llm(input_text: str):
-    def serialize_score_info(score_info: dict[str, dict]) -> dict[str, int | str]:
-        """
-        Input:
-            data = {
-                'content': {'score': [1, 2, 3, 4, 5, 6], 'description': ''},
-                'structure': {'score': [7, 8, 9, 10], 'description': ''},
-                'grammar': {'score': [11, 12, 13], 'description': ''}
+    async def agenerate(self, category: Category, input_text: str):
+        def serialize_score_info(score_info: dict[str, dict]) -> dict[str, int | str]:
+            """
+            Input:
+                data = {
+                    'content': {'score': [1, 2, 3, 4, 5, 6], 'description': ''},
+                    'structure': {'score': [7, 8, 9, 10], 'description': ''},
+                    'grammar': {'score': [11, 12, 13], 'description': ''}
+                }
+            """
+            result = {}
+            total = 0
+            for key, value in score_info.items():
+                prefix = key[0].upper()
+                scores = value["score"]
+                description = value["description"]
+                sub_total = sum(scores)
+                for i, score in enumerate(scores, start=1):
+                    result[f"{prefix}_{i}"] = score
+                result[f"{prefix}_total"] = sub_total
+                result[f"{prefix}_description"] = description
+                total += sub_total
+
+            result["Total"] = total
+            return result
+
+        def response_metainfo_str(usage_response: dict, start_datetime: datetime):
+            entry = {
+                "datetime": datetime.now().isoformat(),
+                "prompt": usage_response["prompt_tokens"],
+                "completion": usage_response["completion_tokens"],
+                "total": usage_response["total_tokens"],
+                "response_time(s)": (datetime.now() - start_datetime).total_seconds(),
             }
-        """
-        result = {}
-        total = 0
-        for key, value in score_info.items():
-            prefix = key[0].upper()
-            scores = value["score"]
-            description = value["description"]
-            sub_total = sum(scores)
-            for i, score in enumerate(scores, start=1):
-                result[f"{prefix}_{i}"] = score
-            result[f"{prefix}_total"] = sub_total
-            result[f"{prefix}_description"] = description
-            total += sub_total
+            return json.dumps(entry)
 
-        result["Total"] = total
-        return result
+        prompts = self.construct_prompt(category=category, input_text=input_text)
 
-    def response_metainfo_str(usage_response: dict, start_datetime: datetime):
-        entry = {
-            "datetime": datetime.now().isoformat(),
-            "prompt": usage_response["prompt_tokens"],
-            "completion": usage_response["completion_tokens"],
-            "total": usage_response["total_tokens"],
-            "response_time(s)": (datetime.now() - start_datetime).total_seconds(),
+        model_name, _ = get_model_name_adapt_to_prompt_len(prompts=prompts)
+        t = datetime.now()
+        resp = await achat_completion(
+            model=model_name,
+            messages=prompts,
+            to_json=TO_JSON,
+            temperature=LLM_TEMPERATURE,
+            max_tokens=MAX_OUTPUT_TOKENS,
+        )
+        try:
+            score_info = load_json(resp["choices"][0]["message"]["content"])
+            score_info_serialized = serialize_score_info(score_info)
+        except Exception as e:
+            logger.exception(f"LLM response is not as expected form: {e.__class__.__name__}: {e}\n{resp}")
+
+        token_usage = resp["usage"]
+
+        logger.info(f"LLM Response Metainfo: {response_metainfo_str(token_usage, t)}")
+        prompts_str = "\n\n".join([f"{p['role']}: {p['content']}" for p in prompts])
+        return {
+            "score_info": score_info_serialized,
+            "model_name": model_name,
+            "token_usage": token_usage,
+            "prompts_str": prompts_str,
         }
-        return json.dumps(entry)
-
-    prompts = construct_prompt(input_text=input_text)
-
-    model_name, _ = get_model_name_adapt_to_prompt_len(prompts=prompts)
-    t = datetime.now()
-    resp = await achat_completion(
-        model=model_name,
-        messages=prompts,
-        to_json=TO_JSON,
-        temperature=LLM_TEMPERATURE,
-        max_tokens=MAX_OUTPUT_TOKENS,
-    )
-    try:
-        score_info = load_json(resp["choices"][0]["message"]["content"])
-        score_info_serialized = serialize_score_info(score_info)
-    except Exception as e:
-        logger.exception(f"LLM response is not as expected form: {e.__class__.__name__}: {e}\n{resp}")
-
-    token_usage = resp["usage"]
-
-    logger.info(f"LLM Response Metainfo: {response_metainfo_str(token_usage, t)}")
-    prompts_str = "\n\n".join([f"{p['role']}: {p['content']}" for p in prompts])
-    return {
-        "score_info": score_info_serialized,
-        "model_name": model_name,
-        "token_usage": token_usage,
-        "prompts_str": prompts_str,
-    }
 
 
 @retry(
