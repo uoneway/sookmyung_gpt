@@ -7,13 +7,16 @@ import streamlit as st
 
 from src import logger
 from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, OUTPUT_DTYPE_DICT, OUTPUT_STR_COLUMNS
-from src.common.models import ReportFile, ReportFileList, category_en_to_ko_dict
+from src.common.models import ReportFile, ReportFileList, reset_category_id_to_name_ko_dict
 from src.processor.generator import Generator
 from src.processor.reader import FileReader
 from src.utils.google_drive import GoogleDriveHelper
 from src.utils.io import get_current_datetime, get_suffix, unzip_as_dict
 
 gd_helper = GoogleDriveHelper()
+
+if "category_id_to_name_ko_dict" not in st.session_state:
+    reset_category_id_to_name_ko_dict()
 
 
 def read_report_file(file, name=None) -> ReportFile:
@@ -28,12 +31,12 @@ def read_report_files_concurrently(files, names) -> ReportFileList:
         return ReportFileList(executor.map(read_report_file, files, names))
 
 
-async def run_llm_concurrently(report_file_list, category_option):
+async def run_llm_concurrently(report_file_list, category_id):
     generator = Generator()
 
     tasks = []
     for report_file in report_file_list:
-        tasks.append(generator.agenerate(category=category_option, input_text=report_file.content))
+        tasks.append(generator.agenerate(category=category_id, input_text=report_file.content))
     results = await asyncio.gather(*tasks, return_exceptions=True)
     return results
 
@@ -72,10 +75,10 @@ st.write(
 )
 
 with st.form("input"):
-    category_option = st.selectbox(
+    category_id_selected = st.selectbox(
         "역량",
-        options=tuple(category_en_to_ko_dict.keys()),
-        format_func=lambda x: category_en_to_ko_dict[x],
+        options=tuple(st.session_state["category_id_to_name_ko_dict"].keys()),
+        format_func=lambda x: st.session_state["category_id_to_name_ko_dict"][x],
         # index=None,
         # placeholder="Select contact method...",
     )
@@ -125,7 +128,7 @@ if submitted:
     with st.spinner("평가중입니다... 약 1~2분 소요됩니다."):
         # Run LLM
         logger.info("Start to run LLM...")
-        results = asyncio.run(run_llm_concurrently(input_file_list, category_option))
+        results = asyncio.run(run_llm_concurrently(input_file_list, category_id_selected))
         assert len(results) == len(input_file_list)
 
         stu_id_base = get_current_datetime(format="%y%m%d_%H%M%S")

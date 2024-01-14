@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 import openai
+import streamlit as st
 import tomli
 from jinja2 import Environment
 from openai.error import APIError, RateLimitError, Timeout, TryAgain
@@ -10,9 +11,18 @@ from retry import retry
 
 from src import logger
 from src.common.consts import LLM_TEMPERATURE, MAX_OUTPUT_TOKENS, MODEL_TYPE_INFOS, OPENAI_RETRIES, PROMPT_DIR, TO_JSON
-from src.common.models import Category, prompt_per_category_dict
+from src.common.models import reset_category_strenum, reset_prompt_per_category_dict
 from src.utils.io import load_json
 from src.utils.llm import num_tokens_from_messages
+
+# Read .toml files and build the category_option_dict
+if "prompt_per_category_dict" not in st.session_state:
+    reset_prompt_per_category_dict()
+
+if "Category" not in st.session_state:
+    reset_category_strenum()
+
+Category = st.session_state["Category"]
 
 
 def get_model_name_adapt_to_prompt_len(prompts: list[dict], reduce_prompt_idx: Optional[int] = None):
@@ -72,19 +82,17 @@ class Generator:
         **kwargs,
     ) -> list[dict]:
         # By category, construct criteria str and output_format str
-        criteria_dict = prompt_per_category_dict[category]
+        criteria_dict = st.session_state["prompt_per_category_dict"][category]
 
         criteria_list_with_num = []
         output_format_dict = {}
         for main_idx, crit_dict in enumerate(criteria_dict["criteria"], start=1):
-            criteria_list_with_num.append(
-                f"{main_idx}. {crit_dict['title_kor']}({crit_dict['title_eng'].capitalize()})"
-            )
+            criteria_list_with_num.append(f"{main_idx}. {crit_dict['title_ko']}({crit_dict['title_en'].capitalize()})")
             criteria_list_with_num.extend(
                 [f"  {main_idx}-{sub_idx}. {elem}" for sub_idx, elem in enumerate(crit_dict["elements"], start=1)]
             )
 
-            output_format_dict[crit_dict["title_eng"]] = {
+            output_format_dict[crit_dict["title_en"]] = {
                 "score": [f"score{main_idx}-{sub_idx+1}" for sub_idx in range(len(crit_dict["elements"]))],
                 "description": "",
             }
@@ -93,7 +101,7 @@ class Generator:
 
         # Construct prompt
         kwargs.update(
-            category=criteria_dict["category_name_kor"],
+            category=criteria_dict["category_name_ko"],
             criteria=criteria_str,
             input_text=input_text,
             output_format=output_format_str,

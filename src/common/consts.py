@@ -11,6 +11,7 @@ LOG_CONFIG_PATH = PROJECT_DIR / "log_config.yml"
 RESULT_DIR = PROJECT_DIR / "db/result"
 PROMPT_DIR = PROJECT_DIR / "src/prompt"
 PROMPT_PER_CATEGORY_DIR = PROMPT_DIR / "category"
+PROMPT_ARCHIVE_DIR = PROMPT_PER_CATEGORY_DIR / "archive"
 
 # Model
 TO_JSON = True
