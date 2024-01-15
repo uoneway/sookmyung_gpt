@@ -116,16 +116,14 @@ if st.session_state["edit_mode"]:
                     )
 
                 if st.button("➕ 세부 평가기준 추가", key=f"add_sub_{main_idx}", help="세부 평가기준을 추가합니다."):
-                    cate_dict_session["criteria"][main_idx]["elements"].append("new sub criteria")
+                    cate_dict_session["criteria"][main_idx]["elements"].append("")
                     st.rerun()
 
         # Add New Main Criteria Section
         st.divider()
         if st.button("➕ 평가기준 추가", help="평가기준을 추가합니다."):
             i = len(cate_dict_session["criteria"]) + 1
-            cate_dict_session["criteria"].append(
-                {"title_ko": f"새 평가기준명 {i}", "title_en": f"new crietria name {i}", "elements": ["new sub criteria"]}
-            )
+            cate_dict_session["criteria"].append({"title_ko": "", "title_en": "", "elements": [""]})
             st.rerun()
 
     # else:
@@ -141,6 +139,7 @@ if st.session_state["edit_mode"]:
     #     st.rerun()
 
     # 변경사항 저장
+    st.divider()
     to_be_saved = True if cate_dict_orig != cate_dict_session else False
     if st.button(
         "저장하기",
@@ -148,7 +147,42 @@ if st.session_state["edit_mode"]:
         use_container_width=True,
         help="변경사항을 저장합니다. 변경사항이 있을 떄 활성화되며, 저장하지 않은 변경사항은 사라집니다.",
     ):
-        # TODO: 기존 category_name_en, category_name_ko 은 최소한 겹치지 않는지 체크
+        # Check
+        # 평가기준별로 세부 평가기준에서 공백이 있는 경우 제거하기
+        for main_crit in cate_dict_session["criteria"]:
+            main_crit["elements"] = [sub_crit for sub_crit in main_crit["elements"] if sub_crit]
+
+        is_valid = True
+        if not cate_dict_session["category_name_ko"]:
+            st.error("역량명(ko)를 입력해주세요")
+            is_valid = False
+        if not cate_dict_session["category_name_en"]:
+            st.error("역량명(en)를 입력해주세요")
+            is_valid = False
+        if not cate_dict_session["criteria"]:
+            st.error("평가기준이 최소 1개 이상 입력되어야 합니다")
+            is_valid = False
+        if not all([main_crit["title_ko"] and main_crit["title_en"] for main_crit in cate_dict_session["criteria"]]):
+            st.error("평가기준명(ko), 평가기준명(en)은 모두 입력되어야 합니다")
+            is_valid = False
+        if not all([main_crit["elements"] for main_crit in cate_dict_session["criteria"]]):
+            st.error("평가기준별 세부 평가기준은 최소 1개 이상 입력되어야 합니다")
+            is_valid = False
+
+        # title_en, title_ko 중복 체크
+        title_en_list = [main_crit["title_en"] for main_crit in cate_dict_session["criteria"]]
+        if len(title_en_list) != len(set(title_en_list)):
+            st.error("평가기준명(en)은 중복되어서는 안됩니다")
+            is_valid = False
+        title_ko_list = [main_crit["title_ko"] for main_crit in cate_dict_session["criteria"]]
+        if len(title_ko_list) != len(set(title_ko_list)):
+            st.error("평가기준명(ko)은 중복되어서는 안됩니다")
+            is_valid = False
+
+        # TODO: category_name_en, category_name_ko 중복 체크
+
+        if not is_valid:
+            st.stop()
 
         # 기존 파일 백업
         archive_prompt_path = PROMPT_ARCHIVE_DIR / f"{prompt_path.stem}_{get_current_datetime()}{prompt_path.suffix}"
@@ -159,6 +193,7 @@ if st.session_state["edit_mode"]:
             toml.dump(cate_dict_session, file)
         reset_all_category_info()
 
+        st.info("저장되었습니다")
         st.rerun()
 
     st.divider()
