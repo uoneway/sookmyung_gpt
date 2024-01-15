@@ -19,6 +19,8 @@ xlsxwriter
 # fastapi
 python-multipart
 streamlit
+streamlit-extras~=0.3.6
+streamlit-authenticator~=0.2.3
 
 openai==0.28.1
 tiktoken
