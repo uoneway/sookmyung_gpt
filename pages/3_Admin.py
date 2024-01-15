@@ -9,7 +9,19 @@ from src.common.models import (
     reset_category_strenum,
     reset_prompt_per_category_dict,
 )
-from src.utils.io import get_current_datetime
+from src.utils.io import get_current_datetime, make_unique_id
+
+cate_dict_template = {
+    "category_name_ko": "",
+    "category_name_en": "",
+    "criteria": [
+        {
+            "title_ko": "",
+            "title_en": "",
+            "elements": [""],
+        }
+    ],
+}
 
 # Read .toml files and build the category_option_dict
 if "prompt_per_category_dict" not in st.session_state:
@@ -27,13 +39,46 @@ if "select_category_idx" not in st.session_state:
 if "edit_mode" not in st.session_state:
     st.session_state["edit_mode"] = False
 
-on = st.toggle("Edit mode", False, key="edit_mode")
+
+col1, col2 = st.columns([1, 1])
+with col1:
+    on = st.toggle("Edit mode", False, key="edit_mode")
+
+with col2:
+    if st.session_state["edit_mode"]:
+        with stylable_container(
+            key="stylable_container_add_category",
+            css_styles=[
+                """
+                div[data-testid="stButton"]:nth-of-type(1) {
+                    text-align: right;
+                }
+                """
+            ],
+        ):
+            if st.button("역량 추가하기"):
+                new_category_id = f"{get_current_datetime()}_{make_unique_id()}"
+                if f"{new_category_id}_category" not in st.session_state:
+                    st.session_state[f"{new_category_id}_category"] = cate_dict_template.copy()
+                cate_dict_session = st.session_state[f"{new_category_id}_category"]
+
+                new_prompt_path = PROMPT_PER_CATEGORY_DIR / f"{new_category_id}.toml"
+                with open(new_prompt_path, "w") as file:
+                    toml.dump(cate_dict_session, file)
+
+                reset_all_category_info()
+                st.session_state["select_category_idx"] = (
+                    len(st.session_state["category_id_to_name_ko_dict"].keys()) - 1
+                )
+                st.rerun()
 
 st.markdown("## 역량별 평가기준 관리")
 category_id_selected = st.selectbox(
     "역량",
-    options=list(st.session_state["category_id_to_name_ko_dict"].keys()) + ["Add New Category..."],
-    format_func=lambda x: st.session_state["category_id_to_name_ko_dict"][x] if x != "Add New Category..." else x,
+    options=list(st.session_state["category_id_to_name_ko_dict"].keys()),
+    format_func=lambda x: st.session_state["category_id_to_name_ko_dict"][x],
+    # options=list(st.session_state["category_id_to_name_ko_dict"].keys()) + ["Add New Category..."],
+    # format_func=lambda x: st.session_state["category_id_to_name_ko_dict"][x] if x != "Add New Category..." else x,
     index=st.session_state["select_category_idx"],
     # placeholder="Select contact method...",
     label_visibility="collapsed",
@@ -126,17 +171,8 @@ if st.session_state["edit_mode"]:
             cate_dict_session["criteria"].append({"title_ko": "", "title_en": "", "elements": [""]})
             st.rerun()
 
-    # else:
-    #     # 새로운 카테고리 추가
-    #     new_category_id = make_unique_id()
-    #     cate_dict_session = st.session_state[f"{new_category_id}_category"] = {
-    #         "category_name_ko": "",
-    #         "category_name_en": "",
-    #         "criteria": [],
-    #     }
-    #     st.session_state["select_category_idx"] = len(st.session_state["category_id_to_name_ko_dict"].keys())
-
-    #     st.rerun()
+    else:
+        st.error("해당 역량에 대한 평가기준 파일을 찾을 수 없습니다. 관리자에게 문의해주세요.")
 
     # 변경사항 저장
     st.divider()
