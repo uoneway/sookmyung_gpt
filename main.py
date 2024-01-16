@@ -7,7 +7,7 @@ import streamlit as st
 
 from src import logger
 from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, OUTPUT_DTYPE_DICT, OUTPUT_STR_COLUMNS
-from src.common.models import ReportFile, ReportFileList, reset_category_id_to_name_ko_dict
+from src.common.models import ReportFile, ReportFileList, reset_all_category_info
 from src.processor.generator import Generator
 from src.processor.reader import FileReader
 from src.utils.google_drive import GoogleDriveHelper
@@ -16,7 +16,7 @@ from src.utils.io import get_current_datetime, get_suffix, unzip_as_dict
 gd_helper = GoogleDriveHelper()
 
 if "category_id_to_name_ko_dict" not in st.session_state:
-    reset_category_id_to_name_ko_dict()
+    reset_all_category_info()
 
 
 def read_report_file(file, name=None) -> ReportFile:
