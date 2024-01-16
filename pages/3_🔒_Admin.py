@@ -1,6 +1,9 @@
 import streamlit as st
+import streamlit_authenticator as stauth
 import toml
+import yaml
 from streamlit_extras.stylable_container import stylable_container
+from yaml.loader import SafeLoader
 
 from src.common.consts import PROMPT_ARCHIVE_DIR, PROMPT_PER_CATEGORY_DIR
 from src.common.models import (
@@ -10,6 +13,36 @@ from src.common.models import (
     reset_prompt_per_category_dict,
 )
 from src.utils.io import get_current_datetime, make_unique_id
+
+# Authentication
+with open(".streamlit/config.yaml") as file:
+    config = yaml.load(file, Loader=SafeLoader)
+
+authenticator = stauth.Authenticate(
+    config["credentials"],
+    config["cookie"]["name"],
+    config["cookie"]["key"],
+    config["cookie"]["expiry_days"],
+    config["preauthorized"],
+)
+
+# Login
+authenticator.login("Login", "main")  # sidebar
+
+if st.session_state["authentication_status"] is False:
+    st.error("Username/password is incorrect")
+    print("aaa")
+    st.stop()
+elif st.session_state["authentication_status"] is None:
+    st.warning("Please enter your username and password")
+    st.stop()
+elif st.session_state["authentication_status"]:
+    authenticator.logout("Logout", "main", key="unique_key")
+    st.write(f'Welcome *{st.session_state["name"]}*')
+    st.title("Cretia Management")
+
+
+# Admin page
 
 cate_dict_template = {
     "category_name_ko": "",
