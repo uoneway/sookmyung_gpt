@@ -1,5 +1,5 @@
-category_name_en = "communication"
-category_name_ko = "의사소통"
+category_name_en = "communication_orig"
+category_name_ko = "의사소통_orig"
 
 [[criteria]]
 title_en = "Content"

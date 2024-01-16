@@ -220,3 +220,6 @@ db/
 temp*/
 tmp*/
 .streamlit/
+docs/
+logs/
+archive/
