@@ -15,7 +15,7 @@ class RegPat:
     DUPLICATED_EXP = re.compile(r"([^a-zA-Z가-힣0-9_\n\-\.\*\\])\1+")
     STRIP_SPACE_with_OTHER_WS = re.compile(r" *([\t\n\r\f\v]) *")
     LINE_BREAK_TRIPLE = re.compile(r"\n{3,}")
-    NUMBER_SEQUENCE_3_MORE = re.compile(r"(?:\(?[-+]?\d*,?\d*[.]?\d+\)?\s+){2,}\(?[-+]?\d*,?\d*[.]?\d+\)?")
+    # NUMBER_SEQUENCE_3_MORE = re.compile(r"(?:\(?[-+]?\d*,?\d*[.]?\d+\)?\s+){2,}\(?[-+]?\d*,?\d*[.]?\d+\)?")
 
 
 def clean_text(text, verbose=False):
@@ -116,9 +116,6 @@ class FileReader(object):
             text_list_cleaned = text_list
 
         text = "\n".join(text_list_cleaned)
-        # 표 숫자는 줄바꿈도
-        if self.clean:
-            text = RegPat.NUMBER_SEQUENCE_3_MORE.sub(" ", text)
 
         if not text:
             if "\n".join(text_list):
