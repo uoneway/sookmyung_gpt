@@ -1,3 +1,5 @@
+import copy
+
 import streamlit as st
 import streamlit_authenticator as stauth
 import toml
@@ -43,17 +45,21 @@ elif st.session_state["authentication_status"]:
 
 
 # Admin page
+sub_crit_dict_template = {
+    "description": "",
+    "scale_min": None,
+    "scale_max": None,
+}
+crit_dict_template = {
+    "title_ko": "",
+    "title_en": "",
+    "sub_criteria": [sub_crit_dict_template],
+}
 
 cate_dict_template = {
     "category_name_ko": "",
     "category_name_en": "",
-    "criteria": [
-        {
-            "title_ko": "",
-            "title_en": "",
-            "elements": [""],
-        }
-    ],
+    "criteria": [crit_dict_template],
 }
 
 # Read .toml files and build the category_option_dict
@@ -92,7 +98,7 @@ with col2:
             if st.button("역량 추가하기"):
                 new_category_id = f"{get_current_datetime()}_{make_unique_id()}"
                 if f"{new_category_id}_category" not in st.session_state:
-                    st.session_state[f"{new_category_id}_category"] = cate_dict_template.copy()
+                    st.session_state[f"{new_category_id}_category"] = copy.deepcopy(cate_dict_template)
                 cate_dict_session = st.session_state[f"{new_category_id}_category"]
 
                 new_prompt_path = PROMPT_PER_CATEGORY_DIR / f"{new_category_id}.toml"
@@ -185,23 +191,46 @@ if st.session_state["edit_mode"]:
                     )
 
                 st.write("세부 평가기준")
-                for sub_idx, sub_crit in enumerate(main_crit["elements"]):
-                    cate_dict_session["criteria"][main_idx]["elements"][sub_idx] = st.text_input(
-                        f"세부 평가기준 {sub_idx}",
-                        value=sub_crit,
-                        key=f"sub_{main_crit}_{sub_idx}",
-                        label_visibility="collapsed",
-                    )
+                for sub_idx, sub_crit_dict in enumerate(main_crit["sub_criteria"]):
+                    col1, col2, col3 = st.columns([5, 1, 1])
+                    with col1:
+                        cate_dict_session["criteria"][main_idx]["sub_criteria"][sub_idx]["description"] = st.text_input(
+                            "세부 평가기준 description",
+                            value=sub_crit_dict["description"],
+                            key=f"sub_{main_crit}_{sub_idx}",
+                            placeholder="설명",
+                            label_visibility="collapsed",
+                        )
+                    with col2:
+                        cate_dict_session["criteria"][main_idx]["sub_criteria"][sub_idx]["scale_min"] = st.number_input(
+                            "세부 평가기준 scale_min",
+                            value=sub_crit_dict["scale_min"],
+                            step=1,
+                            key=f"sub_{main_crit}_{sub_idx}_scale_min",
+                            placeholder="최소",
+                            label_visibility="collapsed",
+                        )
+                    with col3:
+                        cate_dict_session["criteria"][main_idx]["sub_criteria"][sub_idx]["scale_max"] = st.number_input(
+                            "세부 평가기준 scale_max",
+                            value=sub_crit_dict["scale_max"],
+                            step=1,
+                            key=f"sub_{main_crit}_{sub_idx}_scale_max",
+                            placeholder="최대",
+                            label_visibility="collapsed",
+                        )
 
                 if st.button("➕ 세부 평가기준 추가", key=f"add_sub_{main_idx}", help="세부 평가기준을 추가합니다."):
-                    cate_dict_session["criteria"][main_idx]["elements"].append("")
+                    cate_dict_session["criteria"][main_idx]["sub_criteria"].append(
+                        copy.deepcopy(sub_crit_dict_template)
+                    )
                     st.rerun()
 
         # Add New Main Criteria Section
         st.divider()
         if st.button("➕ 평가기준 추가", help="평가기준을 추가합니다."):
             i = len(cate_dict_session["criteria"]) + 1
-            cate_dict_session["criteria"].append({"title_ko": "", "title_en": "", "elements": [""]})
+            cate_dict_session["criteria"].append(copy.deepcopy(crit_dict_template))
             st.rerun()
 
     else:
@@ -217,9 +246,17 @@ if st.session_state["edit_mode"]:
         help="변경사항을 저장합니다. 변경사항이 있을 떄 활성화되며, 저장하지 않은 변경사항은 사라집니다.",
     ):
         # Check
-        # 평가기준별로 세부 평가기준에서 공백이 있는 경우 제거하기
+        # 평가기준별로 세부 평가기준을 안넣은 경우는 제거하기
         for main_crit in cate_dict_session["criteria"]:
-            main_crit["elements"] = [sub_crit for sub_crit in main_crit["elements"] if sub_crit]
+            main_crit["sub_criteria"] = [
+                {
+                    "description": sub_crit["description"].strip(),
+                    "scale_min": sub_crit["scale_min"],
+                    "scale_max": sub_crit["scale_max"],
+                }
+                for sub_crit in main_crit["sub_criteria"]
+                if sub_crit["description"]
+            ]
 
         is_valid = True
         if not cate_dict_session["category_name_ko"]:
@@ -234,9 +271,25 @@ if st.session_state["edit_mode"]:
         if not all([main_crit["title_ko"] and main_crit["title_en"] for main_crit in cate_dict_session["criteria"]]):
             st.error("평가기준명(ko), 평가기준명(en)은 모두 입력되어야 합니다")
             is_valid = False
-        if not all([main_crit["elements"] for main_crit in cate_dict_session["criteria"]]):
-            st.error("평가기준별 세부 평가기준은 최소 1개 이상 입력되어야 합니다")
-            is_valid = False
+
+        for main_crit in cate_dict_session["criteria"]:
+            if not main_crit["sub_criteria"]:
+                st.error("평가기준별 세부 평가기준은 최소 1개 이상 입력되어야 합니다")
+                is_valid = False
+            for sub_crit in main_crit["sub_criteria"]:
+                if not all(
+                    [
+                        sub_crit["description"],
+                        isinstance(sub_crit["scale_min"], int),
+                        isinstance(sub_crit["scale_max"], int),
+                    ]
+                ):
+                    st.error("세부 평가기준의 설명, 최소, 최대 값은 모두 입력되어야 합니다")
+                    is_valid = False
+
+                if sub_crit["scale_min"] >= sub_crit["scale_max"]:
+                    st.error("세부 평가기준의 최소값은 최대값보다 작아야 합니다")
+                    is_valid = False
 
         # title_en, title_ko 중복 체크
         title_en_list = [main_crit["title_en"] for main_crit in cate_dict_session["criteria"]]
@@ -298,7 +351,9 @@ else:
     if category_id_selected in st.session_state["prompt_per_category_dict"]:  # 기존 카테고리 표시
         criteria_list = st.session_state["prompt_per_category_dict"][category_id_selected]["criteria"]
         for main_crit in criteria_list:
-            main_crit, sub_crit_list = main_crit["title_en"], main_crit["elements"]
+            main_crit, sub_crit_list = main_crit["title_en"], main_crit["sub_criteria"]
             st.markdown(f"#### {main_crit}")
-            for sub_crit in sub_crit_list:
-                st.markdown(f"- {sub_crit}")
+            for sub_crit_dict in sub_crit_list:
+                st.markdown(
+                    f"- {sub_crit_dict['description']} ({sub_crit_dict['scale_min']}~{sub_crit_dict['scale_max']}점)"
+                )

@@ -89,11 +89,19 @@ class Generator:
         for main_idx, crit_dict in enumerate(criteria_dict["criteria"], start=1):
             criteria_list_with_num.append(f"{main_idx}. {crit_dict['title_ko']}({crit_dict['title_en'].capitalize()})")
             criteria_list_with_num.extend(
-                [f"  {main_idx}-{sub_idx}. {elem}" for sub_idx, elem in enumerate(crit_dict["elements"], start=1)]
+                [
+                    f"  {main_idx}_{sub_idx}. "
+                    + f"{sub_crit_dict['description']} ({sub_crit_dict['scale_min']}~{sub_crit_dict['scale_max']}점)"
+                    for sub_idx, sub_crit_dict in enumerate(crit_dict["sub_criteria"], start=1)
+                ]
             )
 
             output_format_dict[crit_dict["title_en"]] = {
-                "score": [f"score{main_idx}-{sub_idx+1}" for sub_idx in range(len(crit_dict["elements"]))],
+                "score": [f"score_{main_idx}_{sub_idx+1}" for sub_idx in range(len(crit_dict["sub_criteria"]))],
+                # "score": [
+                #     f"{main_idx}_{sub_idx+1}_score"
+                #     for sub_idx, sub_crit_dict in enumerate(crit_dict["sub_criteria"], start=1)
+                # ],
                 "description": "",
             }
         criteria_str = "\n".join(criteria_list_with_num)
@@ -151,7 +159,7 @@ class Generator:
             return json.dumps(entry)
 
         prompts = self.construct_prompt(category=category, input_text=input_text)
-
+        # print(prompts)
         model_name, _ = get_model_name_adapt_to_prompt_len(prompts=prompts)
         t = datetime.now()
         resp = await achat_completion(

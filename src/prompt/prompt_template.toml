@@ -16,7 +16,7 @@ content = """Report:
 role = "assistant"
 content = """Output:
  - Guide:
-   - score: 1~5 scale for each sub-criteria.
+   - score: For each sub-criterion, scores must be assigned as whole numbers within the specified range (e.g., for a range of 1~5, select one of the following: 1, 2, 3, 4, or 5).
    - description: Reasons in Korean that less than 3 sentences.
  - Format: Json:
    {{output_format}}
