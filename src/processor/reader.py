@@ -15,14 +15,19 @@ class RegPat:
     DUPLICATED_EXP = re.compile(r"([^a-zA-Z가-힣0-9_\n\-\.\*\\])\1+")
     STRIP_SPACE_with_OTHER_WS = re.compile(r" *([\t\n\r\f\v]) *")
     LINE_BREAK_TRIPLE = re.compile(r"\n{3,}")
+    HWP_DUMMY_PREFIX = re.compile(r"^\s*捤獥汤捯")
+    HWP_DUMMY_EXP = re.compile(r"[Āྠ]")
     # NUMBER_SEQUENCE_3_MORE = re.compile(r"(?:\(?[-+]?\d*,?\d*[.]?\d+\)?\s+){2,}\(?[-+]?\d*,?\d*[.]?\d+\)?")
 
 
-def clean_text(text, verbose=False):
+def clean_text(text, filetype, verbose=False):
     """Clean the extracted text."""
     if verbose:
         text_orig = text
     text = RegPat.TO_REMOVE_CHAR.sub(" ", text)  # ASCII 제어 문자 제거
+    if filetype == ".hwp":
+        text = RegPat.HWP_DUMMY_PREFIX.sub(r"", text)
+        text = RegPat.HWP_DUMMY_EXP.sub(r"", text)
     text = RegPat.DUPLICATED_EXP.sub(r"\1", text)  # 여기서 동일 유형의 white space 중복 제거도 시행
     text = RegPat.STRIP_SPACE_with_OTHER_WS.sub(r"\1", text)  # " "와 다른 유형의 white space가 붙어 있으면 " "를 제거
     text = RegPat.LINE_BREAK_TRIPLE.sub(r"\n\n", text)  # " "와 다른 유형의 white space가 붙어 있으면 " "를 제거
@@ -109,7 +114,7 @@ class FileReader(object):
         if self.clean:
             text_list_cleaned = []
             for text in text_list:
-                text = clean_text(text, self.verbose)
+                text = clean_text(text, self.filetype, self.verbose)
                 if text:
                     text_list_cleaned.append(text)
         else:
