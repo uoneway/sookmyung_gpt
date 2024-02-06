@@ -6,7 +6,13 @@ import pandas as pd
 import streamlit as st
 
 from src import logger
-from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, OUTPUT_DTYPE_DICT, OUTPUT_STR_COLUMNS
+from src.common.consts import (
+    ALLOWED_EXTENSIONS,
+    ALLOWED_EXTENSIONS_WITH_ZIP,
+    MAX_CHAR_LEN_PER_FILE,
+    OUTPUT_DTYPE_DICT,
+    OUTPUT_STR_COLUMNS,
+)
 from src.common.models import ReportFile, ReportFileList, reset_all_category_info
 from src.processor.generator import Generator
 from src.processor.reader import FileReader
@@ -119,6 +125,14 @@ if submitted:
 
         try:
             input_file_list = read_report_files_concurrently(files_dict.values(), files_dict.keys())
+            for file in input_file_list:
+                if len(file.content) > MAX_CHAR_LEN_PER_FILE:
+                    st.warning(
+                        f"Since the '{file.name}' file is too long"
+                        + f"({len(file.content)} chars), "
+                        + f"only the content up to {MAX_CHAR_LEN_PER_FILE} will be used for processing."
+                    )
+                    file.content = file.content[:MAX_CHAR_LEN_PER_FILE]
             st.write(f"총 {len(input_file_list)}개 파일을 읽었습니다.")
             logger.info(f"File loaded: {[file.name for file in input_file_list]}")
         except Exception as e:
