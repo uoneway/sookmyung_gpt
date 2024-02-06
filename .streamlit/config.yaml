@@ -8,6 +8,30 @@ credentials:
       email: rbriggs@gmail.com
       name: Rebecca Briggs
       password: $2b$12$YDuhUVguqkES8AM9ivlL9OYzQcIPDGyG.FxaeduWl9WYVJaTmCaBu
+    syngprk:
+      email: syngprk@aaa.com
+      name: syngprk
+      password: $2b$12$92cyI7zqGWoP.o3ryeZaQemgJNST7l2xsRBsU1EM8Lgx.A1RTfx/O
+    itsmee45:
+      email: itsmee45@aaa.com
+      name: itsmee45
+      password: $2b$12$TIR3d/lIuVLSUf8EuoJLaOWcdgta4zS400Cl72eMx6Z3e0h2ME8eS
+    thanks02:
+      email: thanks02@aaa.com
+      name: thanks02
+      password: $2b$12$Rgf9SPEt49RF9jDlZV7gSuEOjpybNj0DOQzbZF3KBtSJHjPeITXpi
+    youkyunglee:
+      email: youkyunglee@aaa.com
+      name: youkyunglee
+      password: $2b$12$haQhTotPVUxmKMQDOFhDZ.nWxIa/mI71zKtyJ/Ub45Erir1SJWDke
+    dreamgo5049:
+      email: dreamgo5049@aaa.com
+      name: dreamgo5049
+      password: $2b$12$6bGGT4PQ4vYi6v7bMBDG8O6UarmwrZQBm/7C/8NRjvlfGjVMrBI9m
+    lee.byungyoo12:
+      email: lee.byungyoo12@aaa.com
+      name: lee.byungyoo12
+      password: $2b$12$MUcBkNMf3nwKQkCRDwWayeL8Vj5k0.q86GZ4zKSnPhnNcM0x2omHG
 cookie:
   expiry_days: 30
   key: some_signature_key # Must be string
