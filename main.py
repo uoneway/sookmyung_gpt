@@ -177,6 +177,18 @@ if submitted:
         output = BytesIO()
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             result_df.to_excel(writer, index=False)
+
+            # 칼럼 너비 설정
+            workbook = writer.book
+            worksheet = writer.sheets["Sheet1"]
+            # 줄바꿈을 위한 셀 포맷 설정
+            cell_format = workbook.add_format({"text_wrap": True})
+
+            worksheet.set_column("A:A", 15, cell_format)
+            worksheet.set_column("S:S", 20, cell_format)
+            worksheet.set_column("T:T", 20, cell_format)
+            worksheet.set_column("U:U", 20, cell_format)
+            worksheet.set_column("W:W", 100)
         result_xlsx_bytes = output.getvalue()
 
         # Save to google drive
