@@ -46,8 +46,8 @@ elif st.session_state["authentication_status"]:
 # Admin page
 sub_crit_dict_template = {
     "description": "",
-    "scale_min": None,
-    "scale_max": None,
+    "scale_min": 1,
+    "scale_max": 5,
 }
 crit_dict_template = {
     "title_ko": "",
@@ -369,9 +369,20 @@ else:
     if category_id_selected in st.session_state["prompt_per_category_dict"]:  # 기존 카테고리 표시
         criteria_list = st.session_state["prompt_per_category_dict"][category_id_selected]["criteria"]
         for main_crit in criteria_list:
-            main_crit, sub_crit_list = main_crit["title_en"], main_crit["sub_criteria"]
-            st.markdown(f"#### {main_crit}")
-            for sub_crit_dict in sub_crit_list:
-                st.markdown(
-                    f"- {sub_crit_dict['description']} ({sub_crit_dict['scale_min']}~{sub_crit_dict['scale_max']}점)"
-                )
+            try:
+                # Check
+                for k, v in main_crit.items():
+                    if not v:
+                        raise KeyError(k)
+                st.markdown(f"#### {main_crit['title_ko']} ({main_crit['title_en']})")
+                for sub_crit_dict in main_crit["sub_criteria"]:
+                    for k, v in sub_crit_dict.items():
+                        if not v:
+                            raise KeyError(k)
+                    st.markdown(
+                        f"- {sub_crit_dict['description']} "
+                        + f"({sub_crit_dict['scale_min']}~{sub_crit_dict['scale_max']}점)"
+                    )
+
+            except KeyError as e:
+                st.error(f"해당 역량 파일에 필수 값이 빠져 있습니다. 수정 모드에서 수정해주세요: {e}")
