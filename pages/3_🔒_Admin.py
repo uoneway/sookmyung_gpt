@@ -286,9 +286,9 @@ if st.session_state["edit_mode"]:
                     st.error("세부 평가기준의 설명, 최소, 최대 값은 모두 입력되어야 합니다")
                     is_valid = False
 
-                if sub_crit["scale_min"] >= sub_crit["scale_max"]:
-                    st.error("세부 평가기준의 최소값은 최대값보다 작아야 합니다")
-                    is_valid = False
+                    if sub_crit["scale_min"] >= sub_crit["scale_max"]:
+                        st.error("세부 평가기준의 최소값은 최대값보다 작아야 합니다")
+                        is_valid = False
 
         # title_en, title_ko 중복 체크
         title_en_list = [main_crit["title_en"] for main_crit in cate_dict_session["criteria"]]
