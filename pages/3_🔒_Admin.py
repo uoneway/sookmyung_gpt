@@ -56,7 +56,7 @@ crit_dict_template = {
 }
 
 cate_dict_template = {
-    "category_name_ko": "",
+    "category_name_ko": "(신규 역량)",
     "category_name_en": "",
     "criteria": [crit_dict_template],
 }
@@ -191,7 +191,7 @@ if st.session_state["edit_mode"]:
 
                 st.write("세부 평가기준")
                 for sub_idx, sub_crit_dict in enumerate(main_crit["sub_criteria"]):
-                    col1, col2, col3 = st.columns([5, 1, 1])
+                    col1, col2, col3, col4 = st.columns([7, 1, 1, 1])
                     with col1:
                         cate_dict_session["criteria"][main_idx]["sub_criteria"][sub_idx]["description"] = st.text_input(
                             "세부 평가기준 description",
@@ -218,6 +218,25 @@ if st.session_state["edit_mode"]:
                             placeholder="최대",
                             label_visibility="collapsed",
                         )
+                    with col4:
+                        with stylable_container(
+                            key="stylable_container_delete_sub_crit",
+                            css_styles=[
+                                """
+                                div[data-testid="stButton"]:nth-of-type(1) {
+                                    text-align: right;
+                                }
+                                """,
+                                """
+                                button {
+                                    border: none;
+                                }
+                                """,
+                            ],
+                        ):
+                            if st.button("❎", key=f"delete_sub_crit_{main_idx}_{sub_idx}"):
+                                cate_dict_session["criteria"][main_idx]["sub_criteria"].pop(sub_idx)
+                                st.rerun()
 
                 if st.button("➕ 세부 평가기준 추가", key=f"add_sub_{main_idx}", help="세부 평가기준을 추가합니다."):
                     cate_dict_session["criteria"][main_idx]["sub_criteria"].append(
