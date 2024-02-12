@@ -27,34 +27,17 @@ ALLOWED_EXTENSIONS_WITH_ZIP = ALLOWED_EXTENSIONS + [".zip"]
 MAX_CHAR_LEN_PER_FILE = 40000
 
 # Output
-OUTPUT_DTYPE_DICT = {
-    "STU ID": "str",
-    "C_1": "Int64",
-    "C_2": "Int64",
-    "C_3": "Int64",
-    "C_4": "Int64",
-    "C_5": "Int64",
-    "C_6": "Int64",
-    "C_total": "Int64",
-    "S_1": "Int64",
-    "S_2": "Int64",
-    "S_3": "Int64",
-    "S_4": "Int64",
-    "S_total": "Int64",
-    "G_1": "Int64",
-    "G_2": "Int64",
-    "G_3": "Int64",
-    "G_total": "Int64",
-    "Total": "Int64",
-    "C_description": "str",
-    "S_description": "str",
-    "G_description": "str",
-    "원문파일명": "str",
-    "원문 내용": "str",
-    "사용 모델명": "str",
-    "비고": "str",
-}
-OUTPUT_STR_COLUMNS = [colname for colname, t in OUTPUT_DTYPE_DICT.items() if t == "str"]
+OUTPUT_DTYPE_DICT = [
+    {
+        "STU ID": "str",
+    },
+    {
+        "원문파일명": "str",
+        "원문 내용": "str",
+        "사용 모델명": "str",
+        "비고": "str",
+    },
+]
 
 # google drive
 base_folder_id = "1EHaZ9kIAL2k64l40-7sya8yIrvgvxhNj"

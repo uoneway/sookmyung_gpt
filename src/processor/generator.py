@@ -135,14 +135,14 @@ class Generator:
             result = {}
             total = 0
             for key, value in score_info.items():
-                prefix = key[0].upper()
+                prefix = key.lower()
                 scores = value["score"]
                 description = value["description"]
                 sub_total = sum(scores)
                 for i, score in enumerate(scores, start=1):
                     result[f"{prefix}_{i}"] = score
                 result[f"{prefix}_total"] = sub_total
-                result[f"{prefix}_description"] = description
+                result[f"{prefix}_descript"] = description
                 total += sub_total
 
             result["Total"] = total

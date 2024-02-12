@@ -6,18 +6,12 @@ import pandas as pd
 import streamlit as st
 
 from src import logger
-from src.common.consts import (
-    ALLOWED_EXTENSIONS,
-    ALLOWED_EXTENSIONS_WITH_ZIP,
-    MAX_CHAR_LEN_PER_FILE,
-    OUTPUT_DTYPE_DICT,
-    OUTPUT_STR_COLUMNS,
-)
+from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, MAX_CHAR_LEN_PER_FILE, OUTPUT_DTYPE_DICT
 from src.common.models import ReportFile, ReportFileList, reset_all_category_info
 from src.processor.generator import Generator
 from src.processor.reader import FileReader
 from src.utils.google_drive import GoogleDriveHelper
-from src.utils.io import get_current_datetime, get_suffix, unzip_as_dict
+from src.utils.io import excel_col_index_to_name, get_current_datetime, get_suffix, unzip_as_dict
 
 gd_helper = GoogleDriveHelper()
 
@@ -162,12 +156,28 @@ if submitted:
 
             total_results.append(_result)
 
-            # 모든 결과에 일부 키값이 없는 경우가 있을 수 있기에, 구조 맞춰주기 위해 빈 데이터프레임을 먼저 생성
-            result_df = pd.DataFrame(columns=OUTPUT_DTYPE_DICT.keys())
-            new_df = pd.DataFrame(total_results)
-            result_df = pd.concat([result_df, new_df], ignore_index=True)
-            result_df.loc[:, OUTPUT_STR_COLUMNS] = result_df[OUTPUT_STR_COLUMNS].fillna("")
-            result_df = result_df.astype(OUTPUT_DTYPE_DICT)
+        # 모든 결과에 일부 키값이 없는 경우가 있을 수 있기에, 구조 맞춰주기 위해 빈 데이터프레임을 먼저 생성
+        # Should sync with serialize_score_info in agenerate
+        criteria_dict = st.session_state["prompt_per_category_dict"][category_id_selected]
+        output_dtype_dict = OUTPUT_DTYPE_DICT[0].copy()
+        for crit_dict in criteria_dict["criteria"]:
+            prefix = crit_dict["title_en"].lower()
+            output_dtype_dict.update(
+                {f"{prefix}_{sub_idx+1}": "Int64" for sub_idx in range(len(crit_dict["sub_criteria"]))}
+            )
+            output_dtype_dict[f"{prefix}_total"] = "Int64"
+        output_dtype_dict.update({"Total": "Int64"})
+        output_dtype_dict.update(
+            {f"{crit_dict['title_en'].lower()}_descript": "str" for crit_dict in criteria_dict["criteria"]}
+        )
+        output_dtype_dict.update(OUTPUT_DTYPE_DICT[1].copy())
+
+        result_df = pd.DataFrame(columns=output_dtype_dict.keys())
+        new_df = pd.DataFrame(total_results)
+        result_df = pd.concat([result_df, new_df], ignore_index=True)
+        output_str_columns = [colname for colname, t in output_dtype_dict.items() if t == "str"]
+        result_df.loc[:, output_str_columns] = result_df[output_str_columns].fillna("")
+        result_df = result_df.astype(output_dtype_dict)
 
     with st.spinner("결과를 구글드라이브에 업로드하고 있습니다..."):
         # encoding = "utf-8-sig"
@@ -178,17 +188,28 @@ if submitted:
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             result_df.to_excel(writer, index=False)
 
-            # 칼럼 너비 설정
             workbook = writer.book
             worksheet = writer.sheets["Sheet1"]
-            # 줄바꿈을 위한 셀 포맷 설정
-            cell_format = workbook.add_format({"text_wrap": True})
 
-            worksheet.set_column("A:A", 15, cell_format)
-            worksheet.set_column("S:S", 20, cell_format)
-            worksheet.set_column("T:T", 20, cell_format)
-            worksheet.set_column("U:U", 20, cell_format)
-            worksheet.set_column("W:W", 100)
+            # 칼럼 너비 설정
+            cell_format = {}  # workbook.add_format({"text_wrap": True})
+            col_span_name = f"{excel_col_index_to_name(0)}:{excel_col_index_to_name(0)}"
+            worksheet.set_column(col_span_name, 15, cell_format)
+            long_width_col_idxs = [
+                idx
+                for idx, key_name in enumerate(output_dtype_dict.keys())
+                if "_descript" in key_name or key_name == "원문 내용"
+            ]
+            for idx in long_width_col_idxs:
+                col_span_name = f"{excel_col_index_to_name(idx)}:{excel_col_index_to_name(idx)}"
+                worksheet.set_column(col_span_name, 40, cell_format)
+
+            # 모든 행의 높이 설정
+            row_height = 100  # 원하는 행 높이
+            cell_format = workbook.add_format({"text_wrap": True, "valign": "top"})  # 상단 정렬
+            for row in range(len(result_df)):
+                worksheet.set_row(row + 1, row_height, cell_format)  # 헤더 행 제외 나머지
+
         result_xlsx_bytes = output.getvalue()
 
         # Save to google drive

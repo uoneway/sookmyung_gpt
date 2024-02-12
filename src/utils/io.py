@@ -261,6 +261,15 @@ def get_relative_path(path: Path, num_from_end: int):
     return Path(*Path(path).parts[-num_from_end:])
 
 
+def excel_col_index_to_name(index):
+    """0부터 시작하는 열 인덱스를 Excel 열 이름으로 변환합니다."""
+    name = ""
+    while index >= 0:
+        name = chr(index % 26 + 65) + name
+        index = index // 26 - 1
+    return name
+
+
 class EmptyFileError(Exception):
     def __init__(self, msg: str = None):
         error_msg = "The file is empty" if msg is None else msg
