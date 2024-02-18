@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 SERVICE_TITLE = "sookmyung-ai-cali"
@@ -8,7 +9,8 @@ ENV_PATH = PROJECT_DIR / ".env"
 ENV_DEV_PATH = PROJECT_DIR / ".env.dev"
 LOG_DIR = "./logs"
 LOG_CONFIG_PATH = PROJECT_DIR / "log_config.yml"
-RESULT_DIR = PROJECT_DIR / "db/result"
+DB_DIR = PROJECT_DIR / "db"
+RESULT_DIR = DB_DIR / "result"
 PROMPT_DIR = PROJECT_DIR / "src/prompt"
 PROMPT_PER_CATEGORY_DIR = PROMPT_DIR / "category"
 PROMPT_ARCHIVE_DIR = PROMPT_PER_CATEGORY_DIR / "archive"
@@ -40,4 +42,6 @@ OUTPUT_DTYPE_DICT = [
 ]
 
 # google drive
-base_folder_id = "1EHaZ9kIAL2k64l40-7sya8yIrvgvxhNj"
+PHASE = os.getenv("PHASE")
+GD_BASE_FOLDER_ID = "1HlLUoIzlqYAfSHD2RyqSagKGjZtA_4AJ" if PHASE == "prod" else "1uJuF1M7si5oP9mNd3pfvG-LnWA672NSq"
+SERVER_START_DATETIME_FILE = DB_DIR / "server_start_date.txt"

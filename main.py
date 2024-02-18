@@ -10,10 +10,11 @@ from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, M
 from src.common.models import ReportFile, ReportFileList, reset_all_category_info
 from src.processor.generator import Generator
 from src.processor.reader import FileReader
-from src.utils.google_drive import GoogleDriveHelper
+from src.utils.google_drive import GD_RESULT_FOLDER_ID, GoogleDriveHelper
 from src.utils.io import excel_col_index_to_name, get_current_datetime, get_suffix, unzip_as_dict
 
-gd_helper = GoogleDriveHelper()
+gd_helper = GoogleDriveHelper(GD_RESULT_FOLDER_ID)
+
 
 if "category_id_to_name_ko_dict" not in st.session_state:
     reset_all_category_info()

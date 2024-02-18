@@ -1,19 +1,21 @@
+import os
+from datetime import datetime
 from io import BytesIO
 
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-from src import GOOGLE_DRIVE_SERVICE_SECRETS
-from src.common.consts import base_folder_id
+from src import GOOGLE_DRIVE_SERVICE_SECRETS, logger
+from src.common.consts import GD_BASE_FOLDER_ID, SERVER_START_DATETIME_FILE
 
 
 class GoogleDriveHelper:
     client_json_dict = GOOGLE_DRIVE_SERVICE_SECRETS
-    base_folder_id = base_folder_id
 
-    def __init__(self) -> None:
+    def __init__(self, base_folder_id) -> None:
         self.gauth = self.login_with_service_account()
         self.drive = GoogleDrive(self.gauth)
+        self.base_folder_id = base_folder_id
         self.base_folder = self.get_file(self.base_folder_id)
 
     @staticmethod
@@ -52,25 +54,28 @@ class GoogleDriveHelper:
             folder_id = self.base_folder_id
         return folder_id
 
-    def create_folder(self, subfolder_name, folder_id=None):
-        folder_id = self.decide_folder_id(folder_id)
+    def create_folder(self, subfolder_name, parent_folder_id=None):
+        parent_folder_id = self.decide_folder_id(parent_folder_id)
 
         metadata = {
             "title": subfolder_name,
-            "parents": [{"kind": "drive#fileLink", "id": folder_id}],
+            "parents": [{"kind": "drive#fileLink", "id": parent_folder_id}],
             "mimeType": "application/vnd.google-apps.folder",
         }
         folder = self.drive.CreateFile(metadata=metadata)
         folder.Upload()
         return folder
 
-    def upload_str_obj(self, filename, str_obj, encoding, folder_id=None):
+    def move(self, id, tgt_folder_id):
+        file = self.get_file(id)
+        file["parents"] = [{"kind": "drive#fileLink", "id": tgt_folder_id}]
+        file.Upload()
+
+    def upload(self, filename, content, encoding="utf-8", folder_id=None):
         folder_id = self.decide_folder_id(folder_id)
 
         file = self.drive.CreateFile({"title": filename, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
-
-        # 이미 바이트 객체인 경우, 직접 사용
-        file.SetContentString(str_obj, encoding=encoding)
+        file.SetContentString(content, encoding=encoding)
         file.Upload()
 
         return file
@@ -78,6 +83,7 @@ class GoogleDriveHelper:
     def upload_byte_obj(self, filename, byte_obj, folder_id=None):
         folder_id = self.decide_folder_id(folder_id)
 
+        # 이미 바이트 객체인 경우, 직접 사용
         file_stream = BytesIO(byte_obj)
         file = self.drive.CreateFile({"title": filename, "parents": [{"kind": "drive#fileLink", "id": folder_id}]})
 
@@ -101,6 +107,17 @@ class GoogleDriveHelper:
     #     # else:
     #     file.SetContentString(content)
     #     file.Upload()
+
+    def update_file_with_id(self, file_id, content):
+        file = self.get_file(file_id)
+        file.SetContentString(content)
+        file.Upload()
+
+    def update_file_with_name(self, filename, content, folder_id=None):
+        folder_id = self.decide_folder_id(folder_id)
+        file_id = self.get_file_id(filename, folder_id)
+
+        self.update_file_with_id(file_id, content)
 
     def download(self, file_id, filename):
         file = self.drive.CreateFile({"id": file_id})
@@ -156,7 +173,9 @@ class GoogleDriveHelper:
 
         query = f"title = '{filename}' and '{folder_id}' in parents and trashed = false"
         file_list = self.drive.ListFile({"q": query}).GetList()
-        assert len(file_list) == 1, f"len(file_list) == 1, but {len(file_list)}"
+        if len(file_list) != 1:
+            raise ValueError(f"File '{filename}' does not exist in the {folder_id} folder of google drive.")
+
         return file_list[0]["id"]
 
     def get_file_url_from_id(self, file_id):
@@ -178,3 +197,35 @@ class GoogleDriveHelper:
 
         file_id = self.get_file_id(filename, folder_id)
         return self.get_folder_url(file_id)
+
+    @staticmethod
+    def get_server_start_datetime_str():
+        """SERVER_START_DATE_FILE 존재하면 읽고, 없으면 현재 날짜를 기록하고 읽음"""
+        if os.path.exists(SERVER_START_DATETIME_FILE):
+            with open(SERVER_START_DATETIME_FILE, "r") as file:
+                date_str = file.read().strip()
+        else:
+            logger.warning(f"{SERVER_START_DATETIME_FILE} does not exist. Create new file and write current date.")
+            date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            with open(SERVER_START_DATETIME_FILE, "w") as file:
+                file.write(date_str)
+        return date_str
+
+
+gd_helper_base = GoogleDriveHelper(GD_BASE_FOLDER_ID)
+GD_RESULT_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_result")
+GD_PROMPT_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_prompt")
+GD_PROMPT_ARCHIVE_FOLDER_ID = gd_helper_base.get_file_id("archive", folder_id=GD_PROMPT_FOLDER_ID)
+
+gd_helper_prompt = GoogleDriveHelper(GD_PROMPT_FOLDER_ID)
+
+
+def get_prompt_folder_id_in_gd():
+    date_str = gd_helper_prompt.get_server_start_datetime_str()
+    try:
+        return gd_helper_prompt.get_file_id(filename=date_str)
+
+    except ValueError:
+        prompt_folder_in_gd = gd_helper_prompt.create_folder(date_str)
+        logger.info(f"Create new prompt folder in Google Drive: {date_str}")
+        return prompt_folder_in_gd["id"]

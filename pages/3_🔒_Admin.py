@@ -7,6 +7,7 @@ import yaml
 from streamlit_extras.stylable_container import stylable_container
 from yaml.loader import SafeLoader
 
+from src import logger
 from src.common.consts import PROMPT_ARCHIVE_DIR, PROMPT_PER_CATEGORY_DIR
 from src.common.models import (
     reset_all_category_info,
@@ -14,8 +15,15 @@ from src.common.models import (
     reset_category_strenum,
     reset_prompt_per_category_dict,
 )
+from src.utils.google_drive import (
+    GD_PROMPT_ARCHIVE_FOLDER_ID,
+    GD_PROMPT_FOLDER_ID,
+    GoogleDriveHelper,
+    get_prompt_folder_id_in_gd,
+)
 from src.utils.io import get_current_datetime, make_unique_id
 
+gd_helper = GoogleDriveHelper(GD_PROMPT_FOLDER_ID)
 # Authentication
 with open(".streamlit/config.yaml") as file:
     config = yaml.load(file, Loader=SafeLoader)
@@ -100,9 +108,15 @@ with col2:
                     st.session_state[f"{new_category_id}_category"] = copy.deepcopy(cate_dict_template)
                 cate_dict_session = st.session_state[f"{new_category_id}_category"]
 
+                # Save
                 new_prompt_path = PROMPT_PER_CATEGORY_DIR / f"{new_category_id}.toml"
                 with open(new_prompt_path, "w") as file:
                     toml.dump(cate_dict_session, file)
+                gd_helper.upload(
+                    filename=new_prompt_path.name,
+                    content=toml.dumps(cate_dict_session),
+                    folder_id=get_prompt_folder_id_in_gd(),
+                )
 
                 reset_all_category_info()
                 st.session_state["select_category_idx"] = (
@@ -324,13 +338,24 @@ if st.session_state["edit_mode"]:
         if not is_valid:
             st.stop()
 
-        # 기존 파일 백업
+        # 파일 로컬에 저장: 기존 파일 백업 & 변경사항 저장
         archive_prompt_path = PROMPT_ARCHIVE_DIR / f"{prompt_path.stem}_{get_current_datetime()}{prompt_path.suffix}"
         prompt_path.rename(archive_prompt_path)
-
-        # 변경사항 저장
         with open(prompt_path, "w") as file:
             toml.dump(cate_dict_session, file)
+
+        # 파일 구글드라이브에 업로드
+        try:
+            archive_file_id = gd_helper.get_file_id(prompt_path.name, folder_id=get_prompt_folder_id_in_gd())
+            gd_helper.move(archive_file_id, GD_PROMPT_ARCHIVE_FOLDER_ID)
+        except ValueError as e:
+            logger.error(e)
+
+        gd_helper.upload(
+            filename=prompt_path.name,
+            content=toml.dumps(cate_dict_session),
+            folder_id=get_prompt_folder_id_in_gd(),
+        )
         reset_all_category_info()
 
         st.info("저장되었습니다")
