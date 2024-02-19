@@ -44,4 +44,4 @@ OUTPUT_DTYPE_DICT = [
 # google drive
 PHASE = os.getenv("PHASE")
 GD_BASE_FOLDER_ID = "1HlLUoIzlqYAfSHD2RyqSagKGjZtA_4AJ" if PHASE == "prod" else "1uJuF1M7si5oP9mNd3pfvG-LnWA672NSq"
-SERVER_START_DATETIME_FILE = DB_DIR / "server_start_date.txt"
+# SERVER_START_DATETIME_FILE = DB_DIR / "server_start_date.txt"

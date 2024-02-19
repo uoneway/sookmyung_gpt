@@ -1,12 +1,10 @@
-import os
-from datetime import datetime
 from io import BytesIO
 
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-from src import GOOGLE_DRIVE_SERVICE_SECRETS, logger
-from src.common.consts import GD_BASE_FOLDER_ID, SERVER_START_DATETIME_FILE
+from src import GOOGLE_DRIVE_SERVICE_SECRETS
+from src.common.consts import GD_BASE_FOLDER_ID
 
 
 class GoogleDriveHelper:
@@ -198,18 +196,18 @@ class GoogleDriveHelper:
         file_id = self.get_file_id(filename, folder_id)
         return self.get_folder_url(file_id)
 
-    @staticmethod
-    def get_server_start_datetime_str():
-        """SERVER_START_DATE_FILE 존재하면 읽고, 없으면 현재 날짜를 기록하고 읽음"""
-        if os.path.exists(SERVER_START_DATETIME_FILE):
-            with open(SERVER_START_DATETIME_FILE, "r") as file:
-                date_str = file.read().strip()
-        else:
-            logger.warning(f"{SERVER_START_DATETIME_FILE} does not exist. Create new file and write current date.")
-            date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            with open(SERVER_START_DATETIME_FILE, "w") as file:
-                file.write(date_str)
-        return date_str
+    # @staticmethod
+    # def get_server_start_datetime_str():
+    #     """SERVER_START_DATE_FILE 존재하면 읽고, 없으면 현재 날짜를 기록하고 읽음"""
+    #     if os.path.exists(SERVER_START_DATETIME_FILE):
+    #         with open(SERVER_START_DATETIME_FILE, "r") as file:
+    #             date_str = file.read().strip()
+    #     else:
+    #         logger.warning(f"{SERVER_START_DATETIME_FILE} does not exist. Create new file and write current date.")
+    #         date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    #         with open(SERVER_START_DATETIME_FILE, "w") as file:
+    #             file.write(date_str)
+    #     return date_str
 
 
 gd_helper_base = GoogleDriveHelper(GD_BASE_FOLDER_ID)
@@ -217,15 +215,16 @@ GD_RESULT_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_result")
 GD_PROMPT_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_prompt")
 GD_PROMPT_ARCHIVE_FOLDER_ID = gd_helper_base.get_file_id("archive", folder_id=GD_PROMPT_FOLDER_ID)
 
-gd_helper_prompt = GoogleDriveHelper(GD_PROMPT_FOLDER_ID)
+# gd_helper_prompt = GoogleDriveHelper(GD_PROMPT_FOLDER_ID)
 
 
 def get_prompt_folder_id_in_gd():
-    date_str = gd_helper_prompt.get_server_start_datetime_str()
-    try:
-        return gd_helper_prompt.get_file_id(filename=date_str)
+    return GD_PROMPT_FOLDER_ID
+    # date_str = gd_helper_prompt.get_server_start_datetime_str()
+    # try:
+    #     return gd_helper_prompt.get_file_id(filename=date_str)
 
-    except ValueError:
-        prompt_folder_in_gd = gd_helper_prompt.create_folder(date_str)
-        logger.info(f"Create new prompt folder in Google Drive: {date_str}")
-        return prompt_folder_in_gd["id"]
+    # except ValueError:
+    #     prompt_folder_in_gd = gd_helper_prompt.create_folder(date_str)
+    #     logger.info(f"Create new prompt folder in Google Drive: {date_str}")
+    #     return prompt_folder_in_gd["id"]
