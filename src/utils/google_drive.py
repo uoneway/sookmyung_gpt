@@ -1,10 +1,12 @@
+import os
 from io import BytesIO
+from pathlib import Path
 
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
-from src import GOOGLE_DRIVE_SERVICE_SECRETS
-from src.common.consts import GD_BASE_FOLDER_ID
+from src import GOOGLE_DRIVE_SERVICE_SECRETS, logger
+from src.common.consts import GD_BASE_FOLDER_ID, PROMPT_PER_CATEGORY_DIR
 
 
 class GoogleDriveHelper:
@@ -214,6 +216,13 @@ gd_helper_base = GoogleDriveHelper(GD_BASE_FOLDER_ID)
 GD_RESULT_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_result")
 GD_PROMPT_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_prompt")
 GD_PROMPT_ARCHIVE_FOLDER_ID = gd_helper_base.get_file_id("archive", folder_id=GD_PROMPT_FOLDER_ID)
+
+logger.info(f"Start to download prompt files from Google Drive: {GD_PROMPT_FOLDER_ID}")
+for name_id in gd_helper_base.get_file_name_ids(GD_PROMPT_FOLDER_ID):
+    name, id = name_id["name"], name_id["id"]
+    if Path(name).suffix == ".toml":
+        gd_helper_base.download(id, PROMPT_PER_CATEGORY_DIR / name)
+        logger.info(f"Complete to download prompt file: {name}")
 
 # gd_helper_prompt = GoogleDriveHelper(GD_PROMPT_FOLDER_ID)
 
