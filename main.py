@@ -1,6 +1,7 @@
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -20,16 +21,25 @@ if "category_id_to_name_ko_dict" not in st.session_state:
     reset_all_category_info()
 
 
-def read_report_file(file, name=None) -> ReportFile:
-    name = file.name if name is None else name
-    extension = get_suffix(name)
-    file_reader = FileReader(file=file, filetype=extension, clean=True)
-    return ReportFile(name=name, content=file_reader.text)
+def read_report_file(file, name=None) -> ReportFile | str:
+    try:
+        name = file.name if name is None else name
+        extension = get_suffix(name)
+        file_reader = FileReader(file=file, filetype=extension, clean=True)
+        return ReportFile(name=name, content=file_reader.text)
+    except Exception as e:
+        return f"{e.__class__.__name__}: {str(e)}"
 
 
-def read_report_files_concurrently(files, names) -> ReportFileList:
+def read_report_files_concurrently(files, names) -> dict[str, ReportFile | str]:
+    report_files_dict = {}
     with ThreadPoolExecutor() as executor:
-        return ReportFileList(executor.map(read_report_file, files, names))
+        future_to_name = {executor.submit(read_report_file, file, name): name for file, name in zip(files, names)}
+        for future in as_completed(future_to_name):
+            name = future_to_name[future]
+            result = future.result()  # 여기서 발생하는 예외는 read_report_file 함수 내에서 이미 처리됨
+            report_files_dict[name] = result
+    return report_files_dict
 
 
 async def run_llm_concurrently(report_file_list, category_id):
@@ -122,21 +132,27 @@ if submitted:
             else:
                 files_dict[upload_file.name] = upload_file
 
-        try:
-            input_file_list = read_report_files_concurrently(files_dict.values(), files_dict.keys())
-            for file in input_file_list:
-                if len(file.content) > MAX_CHAR_LEN_PER_FILE:
-                    st.warning(
-                        f"Since the '{file.name}' file is too long"
-                        + f"({len(file.content)} chars), "
-                        + f"only the content up to {MAX_CHAR_LEN_PER_FILE} will be used for processing."
-                    )
-                    file.content = file.content[:MAX_CHAR_LEN_PER_FILE]
-            st.write(f"총 {len(input_file_list)}개 파일을 읽었습니다.")
-            logger.info(f"File loaded: {[file.name for file in input_file_list]}")
-        except Exception as e:
-            raise_error("Cannot read certain file. Make sure certain files are not corrupted or encrypted", e)
+        input_file_dict = read_report_files_concurrently(files_dict.values(), files_dict.keys())
+        error_dict = {filename: v for filename, v in input_file_dict.items() if isinstance(v, str)}
+        if error_dict:
+            for filename, error_msg in error_dict.items():
+                error_msg = f"'{filename}'을 읽는 도중 오류({error_msg})가 발생했습니다."
+                if Path(filename).suffix == ".hwp":
+                    error_msg += " pdf나 word 파일로 변환하여 사용하십시오"
+                st.error(error_msg)
             st.stop()
+
+        input_file_list = ReportFileList([v for v in input_file_dict.values()])
+        for file in input_file_list:
+            if len(file.content) > MAX_CHAR_LEN_PER_FILE:
+                st.warning(
+                    f"Since the '{file.name}' file is too long"
+                    + f"({len(file.content)} chars), "
+                    + f"only the content up to {MAX_CHAR_LEN_PER_FILE} will be used for processing."
+                )
+                file.content = file.content[:MAX_CHAR_LEN_PER_FILE]
+        st.write(f"총 {len(input_file_list)}개 파일을 읽었습니다.")
+        logger.info(f"File loaded: {[file.name for file in input_file_list]}")
 
     with st.spinner("평가중입니다... 약 1~2분 소요됩니다."):
         # Run LLM

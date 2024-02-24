@@ -109,7 +109,7 @@ class FileReader(object):
 
         except Exception as e:
             print(f"Cannot extract text from file: {self.filepath if self.filepath else self.file}. {e}")
-            return None
+            raise e
 
         if self.clean:
             text_list_cleaned = []
