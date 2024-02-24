@@ -10,7 +10,7 @@ from src.common.consts import ALLOWED_EXTENSIONS, ALLOWED_EXTENSIONS_WITH_ZIP, M
 from src.common.models import ReportFile, ReportFileList, reset_all_category_info
 from src.processor.generator import Generator
 from src.processor.reader import FileReader
-from src.utils.google_drive import GD_RESULT_FOLDER_ID, GoogleDriveHelper
+from src.utils.google_drive import GD_DOCS_FILE_URL, GD_RESULT_FOLDER_ID, GoogleDriveHelper
 from src.utils.io import excel_col_index_to_name, get_current_datetime, get_suffix, unzip_as_dict
 
 gd_helper = GoogleDriveHelper(GD_RESULT_FOLDER_ID)
@@ -76,17 +76,21 @@ st.write(
 )
 
 with st.form("input"):
+    st.markdown(f"역량 [ℹ️]({GD_DOCS_FILE_URL})", unsafe_allow_html=True)
     category_id_selected = st.selectbox(
         "역량",
         options=tuple(st.session_state["category_id_to_name_ko_dict"].keys()),
         format_func=lambda x: st.session_state["category_id_to_name_ko_dict"][x],
+        label_visibility="collapsed",
         # index=None,
         # placeholder="Select contact method...",
     )
+    st.markdown(f"과제 파일 업로드({' '.join(ALLOWED_EXTENSIONS_WITH_ZIP)})")
     upload_files = st.file_uploader(
-        f"과제 파일 업로드({' '.join(ALLOWED_EXTENSIONS_WITH_ZIP)})",
+        "과제 파일 업로드",
         accept_multiple_files=True,
         type=[ext[1:] for ext in ALLOWED_EXTENSIONS_WITH_ZIP],
+        label_visibility="collapsed",
     )
     # for filename, content in file_info.items():
     #     src_path = tgt_dir / filename

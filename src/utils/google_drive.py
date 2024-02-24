@@ -1,4 +1,3 @@
-import os
 from io import BytesIO
 from pathlib import Path
 
@@ -212,10 +211,23 @@ class GoogleDriveHelper:
     #     return date_str
 
 
+"""
+GD_BASE_FOLDER: admin에게 edit 권한
+├── prompt
+│   └── archive
+└── ssk_gpt_manager: manager에게 view 권한
+    ├── result
+    └── docs: manager에게 edit 권한 
+        └── manual (file)
+"""
+
 gd_helper_base = GoogleDriveHelper(GD_BASE_FOLDER_ID)
-GD_RESULT_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_result")
-GD_PROMPT_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_prompt")
+GD_PROMPT_FOLDER_ID = gd_helper_base.get_file_id("prompt")
 GD_PROMPT_ARCHIVE_FOLDER_ID = gd_helper_base.get_file_id("archive", folder_id=GD_PROMPT_FOLDER_ID)
+GD_MANAGER_FOLDER_ID = gd_helper_base.get_file_id("ssk_gpt_manager")
+GD_RESULT_FOLDER_ID = gd_helper_base.get_file_id("result", folder_id=GD_MANAGER_FOLDER_ID)
+GD_DOCS_FOLDER_ID = gd_helper_base.get_file_id("docs", folder_id=GD_MANAGER_FOLDER_ID)
+GD_DOCS_FILE_URL = gd_helper_base.get_file_url("manual", folder_id=GD_DOCS_FOLDER_ID)
 
 logger.info(f"Start to download prompt files from Google Drive: {GD_PROMPT_FOLDER_ID}")
 for name_id in gd_helper_base.get_file_name_ids(GD_PROMPT_FOLDER_ID):
