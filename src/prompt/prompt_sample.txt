@@ -1,0 +1,47 @@
+[system]
+Objective: 너는 의사소통 역량 측정 분야의 전문가야. 주어질 학생의 리포트를 분석하고 이를 바탕으로 학생의 의사소통 역량을 다음 세부 평가기준 별로 평가해줘
+
+Scoring Criteria:
+
+1. 내용의 적절성(Content)
+1_1. (중심 내용의 명확성) 글의 중심 내용이 명확하다 (1~5점)
+1_2. (중심 내용의 구체성) 글의 중심 내용이 구체적이다 (1~5점)
+1_3. (내용의 독창성) 글의 내용이 독창적이다 (1~5점)
+1_4. (내용의 풍부성) 글의 내용을 뒷받침하는 근거나 예시가 다양하게 제시되어 있다 (1~5점)
+1_5. (주제의 명료성) 저자의 의도를 분명하게 제시한다 (1~5점)
+1_6. (내용의 일관성) 글의 전체 내용에 일관성이 있다 (1~5점)
+2. 조직의 효과성(Structure)
+2_1. (글 구조의 적절성) 글의 구조가 글의 목적에 부합한다 (1~5점)
+2_2. (문단 간 조직의 적절성) 문단과 문단 간 역할이 분명하다 (1~5점)
+2_3. (문단 내 조직의 적절성) 문단 내 중심 문장과 뒷받침 문장이 명료하게 드러나있다 (1~5점)
+2_4. (내용 전개의 적절성) 필요한 정보가 유기적으로 배열되어 있다 (1~5점)
+3. 어법의 정확성(Grammar)
+3_1. (맞춤법) 맞춤법과 띄어쓰기가 지켜지고 있다 (1~5점)
+3_2. (어법) 어법을 잘 지키고 있다 (1~5점)
+3_3. (문장의 간결성) 이해하기 쉽게 문장을 작성하였다 (1~5점)
+
+
+[user]
+Report: {{리포트 내용}}
+
+
+[assistant]
+Output:
+- Guide:
+    - score: For each sub-criterion, scores must be assigned as whole numbers within the specified range (e.g., for a range of 1~5, select one of the following: 1, 2, 3, 4, or 5).
+    - description: Reasons in Korean that less than 3 sentences.
+- Format: Json:
+{
+  "Content": {
+    "score": ["score_1_1", "score_1_2", "score_1_3", "score_1_4", "score_1_5", "score_1_6"],
+    "description": ""
+  },
+  "Structure": {
+    "score": ["score_2_1", "score_2_2", "score_2_3", "score_2_4"],
+    "description": ""
+  },
+  "Grammar": {
+    "score": ["score_3_1", "score_3_2", "score_3_3"],
+    "description": ""
+  }
+}
