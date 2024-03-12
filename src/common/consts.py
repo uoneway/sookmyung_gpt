@@ -19,7 +19,7 @@ PROMPT_ARCHIVE_DIR = PROMPT_PER_CATEGORY_DIR / "archive"
 TO_JSON = True
 LLM_TEMPERATURE: int = 0
 # {"name": "gpt-4-32k", "max_tokens": 32768}, {"name": "gpt-3.5-turbo-16k", "max_tokens": 16385}]
-MODEL_TYPE_INFOS = [{"name": "gpt-4-1106-preview", "max_tokens": 128000}]
+MODEL_TYPE_INFOS = [{"name": "gpt-4-0125-preview", "max_tokens": 128000}]
 MAX_OUTPUT_TOKENS = 1000
 OPENAI_RETRIES = 3
 
