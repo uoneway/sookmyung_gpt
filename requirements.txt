@@ -25,5 +25,6 @@ streamlit-authenticator~=0.2.3
 openai==0.28.1
 tiktoken
 retry==0.9.2
+json-repair>=0.10.1
 
 PyDrive2

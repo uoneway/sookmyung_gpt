@@ -6,6 +6,7 @@ import openai
 import streamlit as st
 import tomli
 from jinja2 import Environment
+from json_repair import repair_json
 from openai.error import APIError, RateLimitError, Timeout, TryAgain
 from retry import retry
 
@@ -174,7 +175,8 @@ class Generator:
             max_tokens=MAX_OUTPUT_TOKENS,
         )
         try:
-            score_info = load_json(resp["choices"][0]["message"]["content"])
+            score_info_raw = resp["choices"][0]["message"]["content"]
+            score_info = repair_json(score_info_raw, return_objects=True)
             score_info_serialized = serialize_score_info(score_info)
         except Exception as e:
             logger.exception(f"LLM response is not as expected form: {e.__class__.__name__}: {e}\n{resp}")
