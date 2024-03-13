@@ -4,6 +4,9 @@ content = """Objective: 너는 {{category}} 역량 측정 분야의 전문가야
 
 Scoring Criteria:
 {{criteria}}
+
+Scoring examples:
+{{example}}
 """
 
 [[prompt]]

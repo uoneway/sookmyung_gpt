@@ -157,7 +157,7 @@ if submitted:
     with st.spinner("평가중입니다... 약 1~2분 소요됩니다."):
         # Run LLM
         logger.info("Start to run LLM...")
-        results = asyncio.run(run_llm_concurrently(input_file_list, category_id_selected))
+        results = asyncio.run(run_llm_concurrently(report_file_list=input_file_list, category_id=category_id_selected))
         assert len(results) == len(input_file_list)
 
         stu_id_base = get_current_datetime(format="%y%m%d_%H%M%S")

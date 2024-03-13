@@ -9,13 +9,21 @@ from src.common.consts import PROMPT_PER_CATEGORY_DIR
 from src.utils.io import get_suffix
 
 
+def load_prompt(file_path):
+    prompt_dict = toml.load(file_path)
+    # Temporary add the new element(example) for exist file
+    if prompt_dict.get("example") is None:
+        prompt_dict["example"] = ""
+    return prompt_dict
+
+
 def reset_prompt_per_category_dict():
     prompt_per_category_dict = {}
     prompt_per_category_file_paths = sorted(PROMPT_PER_CATEGORY_DIR.glob("*.toml"), key=lambda file: file.name)
     for file_path in prompt_per_category_file_paths:
-        data = toml.load(file_path)
+        prompt_dict = load_prompt(file_path)
         category_id = file_path.stem  # Gets the file name without extension
-        prompt_per_category_dict[category_id] = data
+        prompt_per_category_dict[category_id] = prompt_dict
     st.session_state["prompt_per_category_dict"] = prompt_per_category_dict
 
 

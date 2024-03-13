@@ -10,6 +10,7 @@ from yaml.loader import SafeLoader
 from src import logger
 from src.common.consts import PROMPT_ARCHIVE_DIR, PROMPT_PER_CATEGORY_DIR
 from src.common.models import (
+    load_prompt,
     reset_all_category_info,
     reset_category_id_to_name_ko_dict,
     reset_category_strenum,
@@ -48,7 +49,7 @@ elif st.session_state["authentication_status"] is None:
 elif st.session_state["authentication_status"]:
     authenticator.logout("Logout", "main", key="unique_key")
     st.write(f'Welcome *{st.session_state["name"]}*')
-    st.title("Cretia Management")
+    st.title("역량별 평가기준 관리")
 
 
 # Admin page
@@ -66,6 +67,7 @@ crit_dict_template = {
 cate_dict_template = {
     "category_name_ko": "(신규 역량)",
     "category_name_en": "",
+    "example": "",
     "criteria": [crit_dict_template],
 }
 
@@ -124,9 +126,8 @@ with col2:
                 )
                 st.rerun()
 
-st.markdown("## 역량별 평가기준 관리")
 category_id_selected = st.selectbox(
-    "역량",
+    "역량 선택",
     options=list(st.session_state["category_id_to_name_ko_dict"].keys()),
     format_func=lambda x: st.session_state["category_id_to_name_ko_dict"][x],
     # options=list(st.session_state["category_id_to_name_ko_dict"].keys()) + ["Add New Category..."],
@@ -141,12 +142,12 @@ category_id_selected = st.selectbox(
 if st.session_state["edit_mode"]:
     prompt_path = PROMPT_PER_CATEGORY_DIR / f"{category_id_selected}.toml"
     if prompt_path.is_file():  # 기존 카테고리 편집
-        cate_dict_orig = toml.load(prompt_path)
+        cate_dict_orig = load_prompt(prompt_path)
         if f"{category_id_selected}_category" not in st.session_state:
             st.session_state[f"{category_id_selected}_category"] = cate_dict_orig.copy()
         cate_dict_session = st.session_state[f"{category_id_selected}_category"]
 
-        # st.divider()
+        st.divider()
         st.markdown("### 역량명")
         col1, col2 = st.columns([1, 1])
         with col1:
@@ -264,6 +265,16 @@ if st.session_state["edit_mode"]:
             i = len(cate_dict_session["criteria"]) + 1
             cate_dict_session["criteria"].append(copy.deepcopy(crit_dict_template))
             st.rerun()
+
+        st.divider()
+        st.markdown("#### 채점 예시")
+        cate_dict_session["example"] = st.text_area(
+            "example",
+            value=cate_dict_session["example"],
+            height=300,
+            key="example",
+            label_visibility="collapsed",
+        )
 
     else:
         st.error("해당 역량에 대한 평가기준 파일을 찾을 수 없습니다. 관리자에게 문의해주세요.")
@@ -393,12 +404,14 @@ else:
     # 편집 불가능한 상태로 정보 표시
     if category_id_selected in st.session_state["prompt_per_category_dict"]:  # 기존 카테고리 표시
         criteria_list = st.session_state["prompt_per_category_dict"][category_id_selected]["criteria"]
+        st.markdown("### 평가기준")
         for main_crit in criteria_list:
             try:
                 # Check
                 for k, v in main_crit.items():
                     if not v:
                         raise KeyError(k)
+
                 st.markdown(f"#### {main_crit['title_ko']} ({main_crit['title_en']})")
                 for sub_crit_dict in main_crit["sub_criteria"]:
                     for k, v in sub_crit_dict.items():
@@ -411,3 +424,7 @@ else:
 
             except KeyError as e:
                 st.error(f"해당 역량 파일에 필수 값이 빠져 있습니다. 수정 모드에서 수정해주세요: {e}")
+
+        st.divider()
+        st.markdown("### 채점 예시")
+        st.markdown(st.session_state["prompt_per_category_dict"][category_id_selected]["example"])

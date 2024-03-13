@@ -111,6 +111,7 @@ class Generator:
         kwargs.update(
             category=criteria_dict["category_name_ko"],
             criteria=criteria_str,
+            example=criteria_dict["example"],
             input_text=input_text,
             output_format=output_format_str,
         )
@@ -159,7 +160,7 @@ class Generator:
             return json.dumps(entry)
 
         prompts = self.construct_prompt(category=category, input_text=input_text)
-        # print(prompts)
+        logger.debug(prompts)
         model_name, _ = get_model_name_adapt_to_prompt_len(prompts=prompts)
         t = datetime.now()
         resp = await achat_completion(
