@@ -13,7 +13,6 @@ from retry import retry
 from src import logger
 from src.common.consts import LLM_TEMPERATURE, MAX_OUTPUT_TOKENS, MODEL_TYPE_INFOS, OPENAI_RETRIES, PROMPT_DIR, TO_JSON
 from src.common.models import reset_category_strenum, reset_prompt_per_category_dict
-from src.utils.io import load_json
 from src.utils.llm import num_tokens_from_messages
 
 # Read .toml files and build the category_option_dict
