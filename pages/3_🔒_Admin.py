@@ -147,19 +147,22 @@ if st.session_state["edit_mode"]:
             st.session_state[f"{category_id_selected}_category"] = cate_dict_orig.copy()
         cate_dict_session = st.session_state[f"{category_id_selected}_category"]
 
+        key_postfix_cate = f"{category_id_selected}"
+
         st.divider()
         st.markdown("### 역량명")
         col1, col2 = st.columns([1, 1])
         with col1:
             cate_dict_session["category_name_ko"] = st.text_input(
-                "ko", value=cate_dict_session["category_name_ko"], key="categoty_name_ko"
+                "ko", value=cate_dict_session["category_name_ko"], key=f"categoty_name_ko_{key_postfix_cate}"
             )
         with col2:
             cate_dict_session["category_name_en"] = st.text_input(
-                "en", value=cate_dict_session["category_name_en"], key="category_name_en"
+                "en", value=cate_dict_session["category_name_en"], key=f"category_name_en_{key_postfix_cate}"
             )
 
         for main_idx, main_crit in enumerate(cate_dict_session["criteria"]):
+            key_postfix_main = f"{category_id_selected}_{main_idx}"
             st.divider()
 
             col1, col2 = st.columns([1, 1])
@@ -167,7 +170,7 @@ if st.session_state["edit_mode"]:
                 st.markdown(f"#### 평가기준 {main_idx+1}")
             with col2:
                 with stylable_container(
-                    key=f"stylable_container_{main_idx}",
+                    key="stylable_container_delete_main",
                     css_styles=[
                         """
                         div[data-testid="stButton"]:nth-of-type(1) {
@@ -181,14 +184,16 @@ if st.session_state["edit_mode"]:
                         """,
                     ],
                 ):
-                    if st.button("❎", key=f"delete_main_crit_{main_idx}"):
+                    if st.button("❎", key=f"delete_main_crit_{key_postfix_main}"):
                         # st.warning(f"정말로 {main_crit['title_ko']} 삭제하시겠습니까?")
                         cate_dict_session["criteria"].pop(main_idx)
                         st.rerun()
 
                 # if first_click:
                 #     print("1111")
-                #     if st.button("네 정말 삭제하겠습니다", key=f"delete_main_crit_{main_idx}_confirm"):
+                #     if st.button(
+                #         "네 정말 삭제하겠습니다", key=f"delete_main_crit_confirm_{key_postfix_main}"
+                #     ):
                 #         print("aaaaaa")
                 #         cate_dict_session["criteria"].pop(main_idx)
                 #         st.rerun()
@@ -197,21 +202,22 @@ if st.session_state["edit_mode"]:
                 col1, col2 = st.columns([1, 1])
                 with col1:
                     cate_dict_session["criteria"][main_idx]["title_ko"] = st.text_input(
-                        "평가기준명(ko)", value=main_crit["title_ko"], key=f"main_crit_{main_idx}_title_ko"
+                        "평가기준명(ko)", value=main_crit["title_ko"], key=f"main_crit_title_ko_{key_postfix_main}"
                     )
                 with col2:
                     cate_dict_session["criteria"][main_idx]["title_en"] = st.text_input(
-                        "평가기준명(en)", value=main_crit["title_en"], key=f"main_crit_{main_idx}_title_en"
+                        "평가기준명(en)", value=main_crit["title_en"], key=f"main_crit_title_en_{key_postfix_main}"
                     )
 
                 st.write("세부 평가기준")
                 for sub_idx, sub_crit_dict in enumerate(main_crit["sub_criteria"]):
+                    key_postfix_sub = f"{category_id_selected}_{main_idx}_{sub_idx}"
                     col1, col2, col3, col4 = st.columns([7, 1, 1, 1])
                     with col1:
                         cate_dict_session["criteria"][main_idx]["sub_criteria"][sub_idx]["description"] = st.text_input(
                             "세부 평가기준 description",
                             value=sub_crit_dict["description"],
-                            key=f"sub_{main_crit}_{sub_idx}",
+                            key=f"sub_description_{key_postfix_sub}",
                             placeholder="설명",
                             label_visibility="collapsed",
                         )
@@ -220,7 +226,7 @@ if st.session_state["edit_mode"]:
                             "세부 평가기준 scale_min",
                             value=sub_crit_dict["scale_min"],
                             step=1,
-                            key=f"sub_{main_crit}_{sub_idx}_scale_min",
+                            key=f"sub_scale_min_{key_postfix_sub}",
                             placeholder="최소",
                             label_visibility="collapsed",
                         )
@@ -229,7 +235,7 @@ if st.session_state["edit_mode"]:
                             "세부 평가기준 scale_max",
                             value=sub_crit_dict["scale_max"],
                             step=1,
-                            key=f"sub_{main_crit}_{sub_idx}_scale_max",
+                            key=f"sub_scale_max_{key_postfix_sub}",
                             placeholder="최대",
                             label_visibility="collapsed",
                         )
@@ -249,11 +255,13 @@ if st.session_state["edit_mode"]:
                                 """,
                             ],
                         ):
-                            if st.button("❎", key=f"delete_sub_crit_{main_idx}_{sub_idx}"):
+                            if st.button("❎", key=f"delete_sub_crit_{key_postfix_sub}"):
                                 cate_dict_session["criteria"][main_idx]["sub_criteria"].pop(sub_idx)
                                 st.rerun()
 
-                if st.button("➕ 세부 평가기준 추가", key=f"add_sub_{main_idx}", help="세부 평가기준을 추가합니다."):
+                if st.button(
+                    "➕ 세부 평가기준 추가", key=f"add_sub_{key_postfix_main}", help="세부 평가기준을 추가합니다."
+                ):
                     cate_dict_session["criteria"][main_idx]["sub_criteria"].append(
                         copy.deepcopy(sub_crit_dict_template)
                     )
@@ -272,7 +280,7 @@ if st.session_state["edit_mode"]:
             "example",
             value=cate_dict_session["example"],
             height=300,
-            key="example",
+            key=f"example_{key_postfix_cate}",
             label_visibility="collapsed",
         )
 
