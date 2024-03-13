@@ -108,10 +108,13 @@ class Generator:
         output_format_str = json.dumps(output_format_dict)  # indent=4
 
         # Construct prompt
+        # example 값이 있는 경우에만 example 및 해당 타이틀이 들어갈 수 있도록 수정
+        example = f"Scoring examples:\n{criteria_dict['example']}" if criteria_dict.get("example") else ""
+
         kwargs.update(
             category=criteria_dict["category_name_ko"],
             criteria=criteria_str,
-            example=criteria_dict["example"],
+            example=example,
             input_text=input_text,
             output_format=output_format_str,
         )
@@ -119,7 +122,7 @@ class Generator:
         for p in self.prompt_templates:
             content = Environment().from_string(p["content"]).render(**kwargs)
             if content:
-                prompts.append({"role": p["role"], "content": content})
+                prompts.append({"role": p["role"], "content": content.strip()})
 
         return prompts
 
