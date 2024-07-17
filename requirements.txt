@@ -19,8 +19,8 @@ xlsxwriter
 # fastapi
 python-multipart
 streamlit
-streamlit-extras~=0.3.6
-streamlit-authenticator~=0.2.3
+streamlit-extras~=0.4.3
+streamlit-authenticator~=0.3.2
 
 openai==0.28.1
 tiktoken
@@ -28,3 +28,4 @@ retry==0.9.2
 json-repair>=0.10.1
 
 PyDrive2
+pycryptodome~=3.20.0

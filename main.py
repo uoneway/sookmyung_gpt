@@ -1,4 +1,6 @@
 import asyncio
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from pathlib import Path
@@ -13,6 +15,20 @@ from src.processor.generator import Generator
 from src.processor.reader import FileReader
 from src.utils.google_drive import GD_DOCS_FILE_URL, GD_RESULT_FOLDER_ID, GoogleDriveHelper
 from src.utils.io import excel_col_index_to_name, get_current_datetime, get_suffix, unzip_as_dict
+
+
+def install_requirements():
+    """pycrypt라이브러리 내 sytax error로 인해 발생하는 문제 해결을 위해 pycrypt 삭제
+    직접적으로 설치되지 않으나 streamlit 자체에서 설치되는듯.
+    현재 관리되지 않는 pycrypt 대신 pycryptodome~=3.20.0를 설치하여 사용"""
+    try:
+        # Uninstall pycrypt if it exists
+        subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "pycrypt"], check=True)
+    except subprocess.CalledProcessError:
+        print("pycrypt not installed, skipping uninstall.")
+
+
+install_requirements()
 
 gd_helper = GoogleDriveHelper(GD_RESULT_FOLDER_ID)
 

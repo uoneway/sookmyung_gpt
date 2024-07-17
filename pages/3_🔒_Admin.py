@@ -38,8 +38,7 @@ authenticator = stauth.Authenticate(
 )
 
 # Login
-authenticator.login("Login", "main")  # sidebar
-
+authenticator.login("main", fields={"Form name": "Login"})  # sidebar
 if st.session_state["authentication_status"] is False:
     st.error("Username/password is incorrect")
     st.stop()
