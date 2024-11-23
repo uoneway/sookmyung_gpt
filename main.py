@@ -18,14 +18,15 @@ from src.utils.io import excel_col_index_to_name, get_current_datetime, get_suff
 
 
 def install_requirements():
-    """pycrypt라이브러리 내 sytax error로 인해 발생하는 문제 해결을 위해 pycrypt 삭제
+    """google_drive에서 pycrypt라이브러리 내 sytax error로 인해 발생하는 문제 해결을 위해 pycrypt 삭제
     직접적으로 설치되지 않으나 streamlit 자체에서 설치되는듯.
     현재 관리되지 않는 pycrypt 대신 pycryptodome~=3.20.0를 설치하여 사용"""
     try:
         # Uninstall pycrypt if it exists
         subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "pycrypt"], check=True)
+        logger.info("pycrypt uninstalled.")
     except subprocess.CalledProcessError:
-        print("pycrypt not installed, skipping uninstall.")
+        logger.info("pycrypt not installed, skipping uninstall.")
 
 
 install_requirements()
@@ -257,9 +258,7 @@ if submitted:
         except Exception as e:
             raise_error("Cannot upload result to google drive", e)
         else:
-            st.link_button("결과 Google drive에서 확인하기", url=file["alternateLink"])  # folder["alternateLink"])
-            # embedLink: preview, webContentLink: downlaod
-            # st.link_button("Google drive에서 확인하기", url=file["alternateLink"])
+            st.link_button("결과 Google drive에서 확인하기", url=file["webViewLink"])
 
         # 다운로드 버튼 추가
         # st.download_button("결과 다운받기", result_csv_bytes, filename, "text/csv", key="download-csv")

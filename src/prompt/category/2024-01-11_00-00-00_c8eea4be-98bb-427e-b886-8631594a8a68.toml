@@ -1,5 +1,6 @@
 category_name_en = "communication"
 category_name_ko = "의사소통"
+example = ""
 [[criteria]]
 title_en = "Content"
 title_ko = "내용의 적절성"
@@ -32,6 +33,7 @@ scale_max = 5
 description = "(내용의 일관성) 글의 전체 내용에 일관성이 있다"
 scale_min = 1
 scale_max = 5
+
 
 [[criteria]]
 title_en = "Structure"
