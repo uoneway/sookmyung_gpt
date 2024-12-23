@@ -59,7 +59,6 @@ class Generator:
     prompt_templates_path = PROMPT_DIR / "prompt_template.toml"
     category_dir = PROMPT_DIR / "category"
 
-    model_type = "gpt-4"
     temperature = 0.0
     stream = False
     to_json = True
